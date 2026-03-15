@@ -25,6 +25,9 @@ All notable changes to this project should be documented in this file.
 - 新增价格主备源切换、标准化清洗和异常值过滤。
 - 新增 `/api/v1/prices/stream` 持续推送式 SSE。
 - 新增价格采集器与 provider 的 Phase 2 收口测试。
+- 新增新闻抓取 provider、新闻仓储层和新闻入库服务。
+- 新增 `news_articles` 表、新闻预热、新闻分页查询和详情接口。
+- 新增新闻去重、规则化摘要/情绪/因子映射和抓取测试。
 
 ### Docs
 
@@ -32,6 +35,7 @@ All notable changes to this project should be documented in this file.
 - 补充了当前首版骨架的运行方式与实现状态。
 - 补充了价格写库、K 线聚合和定时采集的当前实现状态。
 - 补充了价格标准化、主备切换和 SSE 的接口与字段说明。
+- 补充了新闻分页、详情、字段说明与 Phase 3 当前实现边界。
 
 ### Tests
 
@@ -39,3 +43,4 @@ All notable changes to this project should be documented in this file.
 - 补充首版骨架启动、跨域和图表渲染测试项。
 - 新增价格持久化、手动采集和定时采集测试项。
 - 新增主备切换、单位换算、异常过滤和历史预热清洗测试项。
+- 新增新闻抓取、去重、筛选和详情测试项。

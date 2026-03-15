@@ -16,6 +16,7 @@ type MarketService interface {
 	GetRealtimePrice() model.RealtimePrice
 	GetPriceHistory(rangeValue, interval string) model.PriceHistory
 	GetNewsList() []model.NewsArticle
+	ListNews(query model.NewsQuery) model.NewsList
 	GetNewsDetail(id int64) (model.NewsArticle, bool)
 	GetLatestFactors() []model.FactorLatest
 	GetFactorDefinitions() []model.FactorDefinition
@@ -113,8 +114,10 @@ func (s *MockMarketService) GetNewsList() []model.NewsArticle {
 	return []model.NewsArticle{
 		{
 			ID:             1,
+			SourceName:     "Mock Macro Desk",
 			Title:          "美元指数回落，黄金短线获得支撑",
 			Summary:        "美元回调压低持有黄金的机会成本，短线对金价形成偏多支撑。",
+			Content:        "美元指数回调压低持有黄金的机会成本，市场对黄金短线配置意愿有所回升。",
 			URL:            "https://example.com/news/usd-gold",
 			Region:         "US",
 			Category:       "macro",
@@ -123,11 +126,14 @@ func (s *MockMarketService) GetNewsList() []model.NewsArticle {
 			ImpactScore:    82,
 			RelatedFactors: []string{"usd_index", "fed_rate"},
 			PublishedAt:    now.Add(-35 * time.Minute).Format(time.RFC3339),
+			CapturedAt:     now.Format(time.RFC3339),
 		},
 		{
 			ID:             2,
+			SourceName:     "Mock Global Wire",
 			Title:          "中东局势升温，避险情绪推动贵金属关注度上升",
 			Summary:        "地缘政治风险抬升，避险资产需求增加，黄金情绪分值上行。",
+			Content:        "地缘政治冲突升级抬升避险需求，黄金与其他避险资产成交活跃度明显增加。",
 			URL:            "https://example.com/news/geopolitics",
 			Region:         "Global",
 			Category:       "geopolitics",
@@ -136,11 +142,14 @@ func (s *MockMarketService) GetNewsList() []model.NewsArticle {
 			ImpactScore:    88,
 			RelatedFactors: []string{"geopolitics", "safe_haven_sentiment"},
 			PublishedAt:    now.Add(-2 * time.Hour).Format(time.RFC3339),
+			CapturedAt:     now.Format(time.RFC3339),
 		},
 		{
 			ID:             3,
+			SourceName:     "Mock Market Journal",
 			Title:          "原油价格反弹，通胀预期边际回升",
 			Summary:        "油价反弹可能抬升通胀预期，进而提高黄金的长期配置吸引力。",
+			Content:        "国际油价走高可能抬升后续通胀预期，强化黄金的抗通胀配置逻辑。",
 			URL:            "https://example.com/news/oil-inflation",
 			Region:         "Global",
 			Category:       "market",
@@ -149,11 +158,14 @@ func (s *MockMarketService) GetNewsList() []model.NewsArticle {
 			ImpactScore:    63,
 			RelatedFactors: []string{"oil_price", "inflation"},
 			PublishedAt:    now.Add(-4 * time.Hour).Format(time.RFC3339),
+			CapturedAt:     now.Format(time.RFC3339),
 		},
 		{
 			ID:             4,
+			SourceName:     "Mock China Metals",
 			Title:          "亚洲实物金需求回暖，金店终端成交改善",
 			Summary:        "节后实物需求回暖带来价格底部支撑，但持续性仍需观察。",
+			Content:        "亚洲市场节后珠宝和投资金条需求回暖，对人民币计价金价形成阶段性支撑。",
 			URL:            "https://example.com/news/physical-demand",
 			Region:         "CN",
 			Category:       "industry",
@@ -162,7 +174,29 @@ func (s *MockMarketService) GetNewsList() []model.NewsArticle {
 			ImpactScore:    58,
 			RelatedFactors: []string{"physical_demand"},
 			PublishedAt:    now.Add(-7 * time.Hour).Format(time.RFC3339),
+			CapturedAt:     now.Format(time.RFC3339),
 		},
+	}
+}
+
+func (s *MockMarketService) ListNews(query model.NewsQuery) model.NewsList {
+	items := s.GetNewsList()
+	page := normalizePage(query.Page)
+	pageSize := normalizePageSize(query.PageSize)
+	start := (page - 1) * pageSize
+	if start >= len(items) {
+		return model.NewsList{Items: []model.NewsArticle{}, Page: page, PageSize: pageSize, Total: int64(len(items))}
+	}
+
+	end := start + pageSize
+	if end > len(items) {
+		end = len(items)
+	}
+	return model.NewsList{
+		Items:    items[start:end],
+		Page:     page,
+		PageSize: pageSize,
+		Total:    int64(len(items)),
 	}
 }
 

@@ -183,10 +183,75 @@ Base URL:
 | `importance` | int | 否 | 重要级别 |
 | `factor_code` | string | 否 | 关联因子编码 |
 
+说明：
+
+- 返回分页结构：`items`、`page`、`page_size`、`total`。
+- `summary`、`sentiment`、`importance`、`impact_score` 当前为规则化生成结果。
+
+响应示例：
+
+```json
+{
+  "code": 0,
+  "message": "ok",
+  "data": {
+    "items": [
+      {
+        "id": 1,
+        "source_name": "Mock Macro Desk",
+        "title": "美元指数回落，黄金短线获得支撑",
+        "summary": "美元指数回调压低持有黄金的机会成本，市场对黄金短线配置意愿有所回升。",
+        "url": "https://example.com/news/usd-gold",
+        "region": "US",
+        "category": "market",
+        "sentiment": "positive",
+        "importance": 4,
+        "impact_score": 82,
+        "related_factors": ["usd_index"],
+        "published_at": "2026-03-15T20:25:00+08:00",
+        "captured_at": "2026-03-15T21:00:00+08:00"
+      }
+    ],
+    "page": 1,
+    "page_size": 10,
+    "total": 1
+  }
+}
+```
+
 ### 4.2 获取新闻详情
 
 - Method: `GET`
 - Path: `/news/:id`
+
+响应说明：
+
+- 返回单条新闻详情，额外包含 `content` 正文内容。
+
+响应示例：
+
+```json
+{
+  "code": 0,
+  "message": "ok",
+  "data": {
+    "id": 1,
+    "source_name": "Mock Macro Desk",
+    "title": "美元指数回落，黄金短线获得支撑",
+    "summary": "美元指数回调压低持有黄金的机会成本，市场对黄金短线配置意愿有所回升。",
+    "content": "美元指数回调压低持有黄金的机会成本，市场对黄金短线配置意愿有所回升。",
+    "url": "https://example.com/news/usd-gold",
+    "region": "US",
+    "category": "market",
+    "sentiment": "positive",
+    "importance": 4,
+    "impact_score": 82,
+    "related_factors": ["usd_index"],
+    "published_at": "2026-03-15T20:25:00+08:00",
+    "captured_at": "2026-03-15T21:00:00+08:00"
+  }
+}
+```
 
 ## 5. 因子接口
 

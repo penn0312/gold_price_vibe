@@ -21,14 +21,20 @@ func main() {
 	}
 
 	priceRepo := repository.NewPriceRepository(db)
+	newsRepo := repository.NewNewsRepository(db)
 	provider := source.NewPriceProvider(cfg)
+	newsProvider := source.NewNewsProvider(cfg)
 	collector := service.NewPriceCollector(priceRepo, provider)
+	newsIngestion := service.NewNewsIngestionService(newsRepo, newsProvider)
 	if err := collector.BootstrapHistory(context.Background()); err != nil {
 		log.Printf("bootstrap history failed: %v", err)
 	}
+	if err := newsIngestion.Bootstrap(context.Background()); err != nil {
+		log.Printf("bootstrap news failed: %v", err)
+	}
 	cron.StartPriceCollector(context.Background(), cfg, collector)
 
-	svc := service.NewAppService(priceRepo, collector)
+	svc := service.NewAppService(priceRepo, newsRepo, collector, newsIngestion)
 	router := api.NewRouter(cfg, svc)
 
 	log.Printf("sqlite ready at %s", cfg.DatabasePath)

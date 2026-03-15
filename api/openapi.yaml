@@ -55,6 +55,7 @@ paths:
   /news:
     get:
       summary: Get news list
+      description: Returns paginated news articles with category, region and factor filters.
       parameters:
         - in: query
           name: page
@@ -86,6 +87,7 @@ paths:
   /news/{id}:
     get:
       summary: Get news detail
+      description: Returns a single news article including full content.
       parameters:
         - in: path
           name: id
@@ -190,6 +192,7 @@ paths:
   /admin/jobs/fetch-news:
     post:
       summary: Trigger news collection
+      description: Fetches news, applies deduplication and stores normalized articles.
       responses:
         "200":
           description: OK

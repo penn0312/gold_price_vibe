@@ -138,7 +138,15 @@ func (h Handler) GetPriceStream(c *gin.Context) {
 }
 
 func (h Handler) GetNews(c *gin.Context) {
-	success(c, h.service.GetNewsList())
+	query := model.NewsQuery{
+		Page:       parseQueryInt(c.Query("page"), 1),
+		PageSize:   parseQueryInt(c.Query("page_size"), 10),
+		Category:   c.Query("category"),
+		Region:     c.Query("region"),
+		Importance: parseQueryInt(c.Query("importance"), 0),
+		FactorCode: c.Query("factor_code"),
+	}
+	success(c, h.service.ListNews(query))
 }
 
 func (h Handler) GetNewsDetail(c *gin.Context) {
@@ -262,6 +270,17 @@ func allowed(target string, items ...string) bool {
 	}
 
 	return false
+}
+
+func parseQueryInt(value string, fallback int) int {
+	if value == "" {
+		return fallback
+	}
+	parsed, err := strconv.Atoi(value)
+	if err != nil {
+		return fallback
+	}
+	return parsed
 }
 
 func corsMiddleware() gin.HandlerFunc {

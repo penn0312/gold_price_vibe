@@ -11,6 +11,9 @@ type Config struct {
 	GoldSourceMode          string
 	GoldAPIURL              string
 	GoldAPIKey              string
+	NewsSourceMode          string
+	NewsFeedURL             string
+	NewsAPIKey              string
 	USDToCNYRate            float64
 	PriceCollectIntervalSec int
 }
@@ -22,6 +25,9 @@ func Load() Config {
 		GoldSourceMode:          getEnv("GOLD_SOURCE_MODE", "mock"),
 		GoldAPIURL:              getEnv("GOLD_API_URL", ""),
 		GoldAPIKey:              getEnv("GOLD_API_KEY", ""),
+		NewsSourceMode:          getEnv("NEWS_SOURCE_MODE", "mock"),
+		NewsFeedURL:             getEnv("NEWS_FEED_URL", ""),
+		NewsAPIKey:              getEnv("NEWS_API_KEY", ""),
 		USDToCNYRate:            getEnvAsFloat("USD_CNY_RATE", 7.2),
 		PriceCollectIntervalSec: getEnvAsInt("PRICE_COLLECT_INTERVAL_SEC", 30),
 	}

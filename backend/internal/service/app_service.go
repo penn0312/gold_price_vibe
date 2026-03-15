@@ -10,14 +10,18 @@ import (
 
 type AppService struct {
 	priceRepo *repository.PriceRepository
+	newsRepo  *repository.NewsRepository
 	collector *PriceCollector
+	news      *NewsIngestionService
 	mock      *MockMarketService
 }
 
-func NewAppService(priceRepo *repository.PriceRepository, collector *PriceCollector) *AppService {
+func NewAppService(priceRepo *repository.PriceRepository, newsRepo *repository.NewsRepository, collector *PriceCollector, news *NewsIngestionService) *AppService {
 	return &AppService{
 		priceRepo: priceRepo,
+		newsRepo:  newsRepo,
 		collector: collector,
+		news:      news,
 		mock:      NewMockMarketService(),
 	}
 }
@@ -88,11 +92,24 @@ func (s *AppService) GetPriceHistory(rangeValue, interval string) model.PriceHis
 }
 
 func (s *AppService) GetNewsList() []model.NewsArticle {
-	return s.mock.GetNewsList()
+	if s.news == nil {
+		return s.mock.GetNewsList()
+	}
+	return s.news.LatestNews(20)
+}
+
+func (s *AppService) ListNews(query model.NewsQuery) model.NewsList {
+	if s.news == nil {
+		return s.mock.ListNews(query)
+	}
+	return s.news.ListNews(query)
 }
 
 func (s *AppService) GetNewsDetail(id int64) (model.NewsArticle, bool) {
-	return s.mock.GetNewsDetail(id)
+	if s.news == nil {
+		return s.mock.GetNewsDetail(id)
+	}
+	return s.news.GetNewsDetail(id)
 }
 
 func (s *AppService) GetLatestFactors() []model.FactorLatest {
@@ -126,6 +143,11 @@ func (s *AppService) GetAccuracyCurve(rangeValue string) model.AccuracyCurve {
 func (s *AppService) TriggerJob(jobName string) model.JobRun {
 	if jobName == "collect-price" {
 		if run, err := s.collector.CollectNow(context.Background()); err == nil {
+			return run
+		}
+	}
+	if jobName == "fetch-news" && s.news != nil {
+		if run, err := s.news.FetchNow(context.Background()); err == nil {
 			return run
 		}
 	}

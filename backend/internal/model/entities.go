@@ -65,8 +65,10 @@ type FactorDefinitionRecord struct {
 type NewsArticleRecord struct {
 	ID                 uint   `gorm:"primaryKey"`
 	SourceID           uint   `gorm:"index"`
+	SourceName         string `gorm:"size:128"`
 	Title              string `gorm:"size:255;index"`
 	Summary            string
+	Content            string
 	ContentHash        string    `gorm:"size:128;uniqueIndex"`
 	URL                string    `gorm:"size:255"`
 	PublishedAt        time.Time `gorm:"index"`
@@ -78,6 +80,10 @@ type NewsArticleRecord struct {
 	ImpactScore        float64
 	RelatedFactorsJSON string
 	CreatedAt          time.Time
+}
+
+func (NewsArticleRecord) TableName() string {
+	return "news_articles"
 }
 
 type AnalysisReportRecord struct {

@@ -161,8 +161,10 @@
 | --- | --- | --- |
 | `id` | INTEGER PK | 主键 |
 | `source_id` | INTEGER INDEX | 数据源 ID |
+| `source_name` | TEXT | 来源名称 |
 | `title` | TEXT INDEX | 标题 |
 | `summary` | TEXT | AI 摘要 |
+| `content` | TEXT | 正文或抓取主体内容 |
 | `content_hash` | TEXT UNIQUE | 用于去重 |
 | `url` | TEXT | 原文地址 |
 | `published_at` | DATETIME INDEX | 发布时间 |
@@ -174,6 +176,12 @@
 | `impact_score` | DECIMAL(6,2) | 对黄金影响分值 |
 | `related_factors_json` | TEXT | 关联因子数组 JSON |
 | `created_at` | DATETIME | 创建时间 |
+
+说明：
+
+- Phase 3 第一版会把新闻落到 `news_articles` 表。
+- `content_hash` 基于标题、链接、正文和发布时间生成，用于抓取去重。
+- `summary`、`sentiment`、`importance`、`impact_score`、`related_factors_json` 当前由规则映射生成，后续可替换为 AI 流程。
 
 ### 3.7 `analysis_reports`
 

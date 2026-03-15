@@ -32,8 +32,10 @@ type PriceHistory struct {
 
 type NewsArticle struct {
 	ID             int64    `json:"id"`
+	SourceName     string   `json:"source_name"`
 	Title          string   `json:"title"`
 	Summary        string   `json:"summary"`
+	Content        string   `json:"content"`
 	URL            string   `json:"url"`
 	Region         string   `json:"region"`
 	Category       string   `json:"category"`
@@ -42,6 +44,23 @@ type NewsArticle struct {
 	ImpactScore    float64  `json:"impact_score"`
 	RelatedFactors []string `json:"related_factors"`
 	PublishedAt    string   `json:"published_at"`
+	CapturedAt     string   `json:"captured_at"`
+}
+
+type NewsQuery struct {
+	Page       int
+	PageSize   int
+	Category   string
+	Region     string
+	Importance int
+	FactorCode string
+}
+
+type NewsList struct {
+	Items    []NewsArticle `json:"items"`
+	Page     int           `json:"page"`
+	PageSize int           `json:"page_size"`
+	Total    int64         `json:"total"`
 }
 
 type FactorPoint struct {
