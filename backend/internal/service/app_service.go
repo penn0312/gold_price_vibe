@@ -15,10 +15,11 @@ type AppService struct {
 	news      *NewsIngestionService
 	factors   *FactorService
 	reports   *ReportService
+	jobs      *JobRunner
 	mock      *MockMarketService
 }
 
-func NewAppService(priceRepo *repository.PriceRepository, newsRepo *repository.NewsRepository, collector *PriceCollector, news *NewsIngestionService, factors *FactorService, reports *ReportService) *AppService {
+func NewAppService(priceRepo *repository.PriceRepository, newsRepo *repository.NewsRepository, collector *PriceCollector, news *NewsIngestionService, factors *FactorService, reports *ReportService, jobs *JobRunner) *AppService {
 	return &AppService{
 		priceRepo: priceRepo,
 		newsRepo:  newsRepo,
@@ -26,6 +27,7 @@ func NewAppService(priceRepo *repository.PriceRepository, newsRepo *repository.N
 		news:      news,
 		factors:   factors,
 		reports:   reports,
+		jobs:      jobs,
 		mock:      NewMockMarketService(),
 	}
 }
@@ -166,20 +168,8 @@ func (s *AppService) GetAccuracyCurve(rangeValue string) model.AccuracyCurve {
 }
 
 func (s *AppService) TriggerJob(jobName string) model.JobRun {
-	if jobName == "collect-price" {
-		if run, err := s.collector.CollectNow(context.Background()); err == nil {
-			return run
-		}
-	}
-	if jobName == "fetch-news" && s.news != nil {
-		if run, err := s.news.FetchNow(context.Background()); err == nil {
-			return run
-		}
-	}
-	if jobName == "update-factors" && s.factors != nil {
-		if run, err := s.factors.UpdateNow(context.Background()); err == nil {
-			return run
-		}
+	if s.jobs != nil {
+		return s.jobs.RunManual(context.Background(), jobName, "")
 	}
 
 	run := s.mock.TriggerJob(jobName)
@@ -195,19 +185,15 @@ func (s *AppService) TriggerJob(jobName string) model.JobRun {
 }
 
 func (s *AppService) GenerateReport(reportDate string) model.JobRun {
-	if s.reports != nil {
-		if run, err := s.reports.GenerateNow(context.Background(), reportDate); err == nil {
-			return run
-		}
+	if s.jobs != nil {
+		return s.jobs.RunManual(context.Background(), "generate-report", reportDate)
 	}
 	return s.mock.GenerateReport(reportDate)
 }
 
 func (s *AppService) ScoreReport(reportDate string) model.JobRun {
-	if s.reports != nil {
-		if run, err := s.reports.ScoreNow(context.Background(), reportDate); err == nil {
-			return run
-		}
+	if s.jobs != nil {
+		return s.jobs.RunManual(context.Background(), "score-report", reportDate)
 	}
 	return s.mock.ScoreReport(reportDate)
 }
@@ -221,16 +207,29 @@ func (s *AppService) GetJobRuns() []model.JobRun {
 	items := make([]model.JobRun, 0, len(records))
 	for _, item := range records {
 		items = append(items, model.JobRun{
-			ID:         int64(item.ID),
-			JobName:    item.JobName,
-			JobType:    item.JobType,
-			Status:     item.Status,
-			StartedAt:  item.StartedAt.Format(time.RFC3339),
-			FinishedAt: item.FinishedAt.Format(time.RFC3339),
-			Message:    item.Message,
+			ID:           int64(item.ID),
+			JobName:      item.JobName,
+			JobType:      item.JobType,
+			Status:       item.Status,
+			TriggerMode:  item.TriggerMode,
+			Attempt:      item.Attempt,
+			MaxAttempts:  item.MaxAttempts,
+			ScheduledFor: formatTimePointer(item.ScheduledFor),
+			StartedAt:    item.StartedAt.Format(time.RFC3339),
+			FinishedAt:   item.FinishedAt.Format(time.RFC3339),
+			DurationMS:   item.DurationMS,
+			Message:      item.Message,
+			ErrorDetail:  item.ErrorDetail,
 		})
 	}
 	return items
+}
+
+func (s *AppService) GetJobDefinitions() []model.JobDefinition {
+	if s.jobs != nil {
+		return s.jobs.ListJobDefinitions()
+	}
+	return s.mock.GetJobDefinitions()
 }
 
 func timeWindow(rangeValue string) (time.Time, time.Time) {

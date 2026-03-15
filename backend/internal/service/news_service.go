@@ -33,20 +33,25 @@ func (s *NewsIngestionService) Bootstrap(ctx context.Context) error {
 		return nil
 	}
 
-	_, err = s.FetchNow(ctx)
+	_, err = s.FetchWithOptions(ctx, bootstrapJobRunOptions())
 	return err
 }
 
 func (s *NewsIngestionService) FetchNow(ctx context.Context) (model.JobRun, error) {
+	return s.FetchWithOptions(ctx, manualJobRunOptions())
+}
+
+func (s *NewsIngestionService) FetchWithOptions(ctx context.Context, options JobRunOptions) (model.JobRun, error) {
+	options = normalizeJobRunOptions(options, "manual")
 	startedAt := time.Now()
 	items, err := s.provider.Fetch(ctx)
 	if err != nil {
-		return s.failJob(startedAt, err)
+		return s.failJob(startedAt, err, options)
 	}
 
 	sourceRecord, err := s.repo.EnsureSource(s.provider.Metadata())
 	if err != nil {
-		return s.failJob(startedAt, err)
+		return s.failJob(startedAt, err, options)
 	}
 
 	savedCount := 0
@@ -54,7 +59,7 @@ func (s *NewsIngestionService) FetchNow(ctx context.Context) (model.JobRun, erro
 		record := buildNewsRecord(sourceRecord.ID, item)
 		_, created, saveErr := s.repo.SaveArticle(record)
 		if saveErr != nil {
-			return s.failJob(startedAt, saveErr)
+			return s.failJob(startedAt, saveErr, options)
 		}
 		if created {
 			savedCount++
@@ -70,15 +75,20 @@ func (s *NewsIngestionService) FetchNow(ctx context.Context) (model.JobRun, erro
 		FinishedAt: finishedAt.Format(time.RFC3339),
 		Message:    fmt.Sprintf("news fetched: %d new article(s)", savedCount),
 	}
+	fillJobRunMeta(&run, options, int(finishedAt.Sub(startedAt).Milliseconds()), nil)
 
 	err = s.repo.SaveJobRun(model.JobRunRecord{
-		JobName:    run.JobName,
-		JobType:    run.JobType,
-		Status:     run.Status,
-		StartedAt:  startedAt,
-		FinishedAt: finishedAt,
-		DurationMS: int(finishedAt.Sub(startedAt).Milliseconds()),
-		Message:    run.Message,
+		JobName:      run.JobName,
+		JobType:      run.JobType,
+		Status:       run.Status,
+		TriggerMode:  run.TriggerMode,
+		Attempt:      run.Attempt,
+		MaxAttempts:  run.MaxAttempts,
+		ScheduledFor: options.ScheduledFor,
+		StartedAt:    startedAt,
+		FinishedAt:   finishedAt,
+		DurationMS:   run.DurationMS,
+		Message:      run.Message,
 	})
 	return run, err
 }
@@ -126,7 +136,7 @@ func (s *NewsIngestionService) GetNewsDetail(id int64) (model.NewsArticle, bool)
 	return model.NewsArticle{}, false
 }
 
-func (s *NewsIngestionService) failJob(startedAt time.Time, err error) (model.JobRun, error) {
+func (s *NewsIngestionService) failJob(startedAt time.Time, err error, options JobRunOptions) (model.JobRun, error) {
 	finishedAt := time.Now()
 	run := model.JobRun{
 		JobName:    "fetch-news",
@@ -136,16 +146,21 @@ func (s *NewsIngestionService) failJob(startedAt time.Time, err error) (model.Jo
 		FinishedAt: finishedAt.Format(time.RFC3339),
 		Message:    err.Error(),
 	}
+	fillJobRunMeta(&run, options, int(finishedAt.Sub(startedAt).Milliseconds()), err)
 
 	saveErr := s.repo.SaveJobRun(model.JobRunRecord{
-		JobName:     run.JobName,
-		JobType:     run.JobType,
-		Status:      run.Status,
-		StartedAt:   startedAt,
-		FinishedAt:  finishedAt,
-		DurationMS:  int(finishedAt.Sub(startedAt).Milliseconds()),
-		Message:     "news ingestion failed",
-		ErrorDetail: err.Error(),
+		JobName:      run.JobName,
+		JobType:      run.JobType,
+		Status:       run.Status,
+		TriggerMode:  run.TriggerMode,
+		Attempt:      run.Attempt,
+		MaxAttempts:  run.MaxAttempts,
+		ScheduledFor: options.ScheduledFor,
+		StartedAt:    startedAt,
+		FinishedAt:   finishedAt,
+		DurationMS:   run.DurationMS,
+		Message:      "news ingestion failed",
+		ErrorDetail:  err.Error(),
 	})
 	if saveErr != nil {
 		return run, errors.Join(err, saveErr)

@@ -22,6 +22,7 @@
 | `analysis_reports` | AI 每日分析报告 |
 | `report_predictions` | 报告中结构化预测结论 |
 | `report_scores` | 报告准确率评分 |
+| `job_definitions` | 定时任务定义与最近运行状态 |
 | `job_runs` | 定时任务执行记录 |
 
 ## 3. 详细表结构
@@ -276,7 +277,34 @@ Phase 5 当前实现约束：
 - 默认评分对象为“前一日报告”，手动接口也支持指定 `report_date` 重算。
 - `total_score` 范围为 `0 ~ 100`，已实现幂等 upsert，重复评分会覆盖旧结果。
 
-### 3.10 `job_runs`
+### 3.10 `job_definitions`
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `id` | INTEGER PK | 主键 |
+| `job_name` | TEXT UNIQUE | 任务名 |
+| `job_type` | TEXT | `collector/report/scoring` |
+| `schedule_spec` | TEXT | 调度规则，如 `@every:600s` 或 `daily:09:00` |
+| `is_enabled` | BOOLEAN | 是否启用 |
+| `retry_limit` | INTEGER | 最大重试次数，不含首次执行 |
+| `retry_backoff_sec` | INTEGER | 重试退避秒数 |
+| `timeout_sec` | INTEGER | 单次执行超时秒数 |
+| `last_run_status` | TEXT | 最近状态 |
+| `last_run_at` | DATETIME NULL | 最近开始时间 |
+| `last_finished_at` | DATETIME NULL | 最近结束时间 |
+| `last_duration_ms` | INTEGER | 最近耗时 |
+| `last_message` | TEXT | 最近消息 |
+| `last_error_detail` | TEXT | 最近错误明细 |
+| `created_at` | DATETIME | 创建时间 |
+| `updated_at` | DATETIME | 更新时间 |
+
+说明：
+
+- 服务启动时会幂等写入 5 个内置任务定义。
+- 当前 `collect-price` 保持独立 ticker，其余自动任务由统一调度器读取该表执行。
+- `last_*` 字段用于后台任务中心展示最近结果。
+
+### 3.11 `job_runs`
 
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
@@ -284,6 +312,10 @@ Phase 5 当前实现约束：
 | `job_name` | TEXT INDEX | 任务名 |
 | `job_type` | TEXT | `collector/report/scoring/cleanup` |
 | `status` | TEXT | `success/failed/running` |
+| `trigger_mode` | TEXT | `manual/scheduled/retry/bootstrap` |
+| `attempt` | INTEGER | 第几次执行 |
+| `max_attempts` | INTEGER | 最大执行次数 |
+| `scheduled_for` | DATETIME NULL | 原计划执行时间 |
 | `started_at` | DATETIME | 开始时间 |
 | `finished_at` | DATETIME | 结束时间 |
 | `duration_ms` | INTEGER | 耗时 |
@@ -299,6 +331,7 @@ Phase 5 当前实现约束：
 - `factor_definitions` 1 对多 `factor_snapshots`
 - `analysis_reports` 1 对多 `report_predictions`
 - `analysis_reports` 1 对 1 `report_scores`
+- `job_definitions` 1 对多 `job_runs`
 
 ## 5. GORM 模型拆分建议
 
@@ -307,6 +340,7 @@ Phase 5 当前实现约束：
 - `backend/internal/model/factor.go`
 - `backend/internal/model/news.go`
 - `backend/internal/model/report.go`
+- `backend/internal/model/job_definition.go`
 - `backend/internal/model/job_run.go`
 
 ## 6. 初始化数据建议
@@ -328,10 +362,11 @@ Phase 5 当前实现约束：
 - `factor_definitions`
 - `news_articles`
 - `analysis_reports`
+- `job_definitions`
 - `job_runs`
 
 说明：
 
 - 这是第一阶段启动骨架，字段已覆盖核心主干。
 - `gold_price_candles` 与 `job_runs` 已接入真实持久化。
-- `factor_snapshots`、`report_predictions`、`report_scores` 仍建议在下一阶段继续补齐为真实持久化模型。
+- `factor_snapshots`、`report_predictions`、`report_scores`、`job_definitions` 均已接入真实持久化模型。

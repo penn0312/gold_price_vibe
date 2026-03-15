@@ -627,6 +627,45 @@ Base URL:
 - Method: `GET`
 - Path: `/admin/jobs/runs`
 
+说明：
+
+- 返回最近执行的后台任务记录。
+- 自动任务会额外返回 `trigger_mode`、`attempt`、`max_attempts`、`scheduled_for`、`duration_ms`、`error_detail`。
+
+### 7.7 获取任务定义列表
+
+- Method: `GET`
+- Path: `/admin/jobs/definitions`
+
+说明：
+
+- 返回系统内置自动任务的调度规则、重试策略和最近运行状态。
+
+响应示例：
+
+```json
+{
+  "code": 0,
+  "message": "ok",
+  "data": [
+    {
+      "job_name": "fetch-news",
+      "job_type": "collector",
+      "schedule_spec": "@every:600s",
+      "is_enabled": true,
+      "retry_limit": 2,
+      "retry_backoff_sec": 10,
+      "timeout_sec": 20,
+      "last_run_status": "success",
+      "last_run_at": "2026-03-15T21:00:00+08:00",
+      "last_finished_at": "2026-03-15T21:00:01+08:00",
+      "last_duration_ms": 804,
+      "last_message": "news fetched: 2 new article(s)"
+    }
+  ]
+}
+```
+
 ## 8. 状态码约定
 
 | code | 含义 |

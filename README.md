@@ -168,6 +168,7 @@ gold_price/
 - `update-factors` 因子更新任务与 SQLite 快照持久化
 - 报告生成、结构化预测、评分入库与 `/reports` 真实读库接口
 - `generate-report`、`score-report` 后台任务与历史准确率曲线持久化
+- 自动任务定义中心、统一调度、失败重试与告警钩子
 - 变更同步规范、版本日志与校验脚本
 
 ## 8. 已实现的首版代码能力
@@ -198,6 +199,10 @@ gold_price/
 - 报告系统会自动预热近 30 天日报、结构化预测与历史评分
 - `/reports/latest`、`/reports`、`/reports/:id`、`/reports/accuracy/curve` 已切到 SQLite 真实回读
 - `generate-report` 支持指定 `report_date` 生成日报，`score-report` 支持指定日期重算评分
+- 服务启动时会初始化 `job_definitions`，统一维护自动任务频率、超时和重试参数
+- 新闻抓取、因子更新、日报生成、评分任务已支持自动调度
+- 自动任务运行会记录 `trigger_mode`、`attempt`、`max_attempts`、`scheduled_for`
+- `/admin/jobs/definitions` 可查看任务中心配置与最近状态
 - 当前日报与评分为本地规则引擎版本，后续可平滑替换为真实 AI 模型
 
 ### 前端
@@ -246,14 +251,26 @@ npm run dev
 - `NEWS_API_KEY`
 - `USD_CNY_RATE`
 - `PRICE_COLLECT_INTERVAL_SEC`
+- `NEWS_FETCH_ENABLED`
+- `NEWS_FETCH_INTERVAL_SEC`
+- `FACTOR_UPDATE_ENABLED`
+- `FACTOR_UPDATE_INTERVAL_SEC`
+- `REPORT_GENERATE_ENABLED`
+- `REPORT_GENERATE_TIME`
+- `REPORT_SCORE_ENABLED`
+- `REPORT_SCORE_TIME`
+- `JOB_RETRY_LIMIT`
+- `JOB_RETRY_BACKOFF_SEC`
+- `JOB_TIMEOUT_SEC`
+- `JOB_ALERT_WEBHOOK`
 - `VITE_API_BASE`
 
 ## 10. 下一步建议
 
 建议下一阶段按以下顺序继续：
 
-1. 进入 Phase 6，补齐新闻、因子、报告、评分的定时调度链路
+1. 进入 Phase 7，补齐前端加载态、空态、错误态和重试交互
 2. 将日报生成器和新闻摘要从规则版升级为 AI 版
 3. 对接真实宏观因子源，替换当前本地规则因子引擎
-4. 补齐前端加载态、空态、错误态和报告页详情交互
-5. 增加鉴权、告警和部署脚本
+4. 完成联调、端到端验证与 `v0.1.0` 发布收口
+5. 增加鉴权、告警增强和部署脚本

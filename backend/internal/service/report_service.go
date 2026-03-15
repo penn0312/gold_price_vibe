@@ -93,20 +93,25 @@ func (s *ReportService) Bootstrap(ctx context.Context) error {
 }
 
 func (s *ReportService) GenerateNow(ctx context.Context, reportDate string) (model.JobRun, error) {
+	return s.GenerateWithOptions(ctx, reportDate, manualJobRunOptions())
+}
+
+func (s *ReportService) GenerateWithOptions(ctx context.Context, reportDate string, options JobRunOptions) (model.JobRun, error) {
+	options = normalizeJobRunOptions(options, "manual")
 	startedAt := time.Now()
 	date, err := resolveReportDate(reportDate, time.Now())
 	if err != nil {
-		return s.failJob("generate-report", "report", startedAt, err)
+		return s.failJob("generate-report", "report", startedAt, err, options)
 	}
 
 	build, err := s.buildReport(ctx, date)
 	if err != nil {
-		return s.failJob("generate-report", "report", startedAt, err)
+		return s.failJob("generate-report", "report", startedAt, err, options)
 	}
 
 	record, err := s.repo.UpsertReport(build.record)
 	if err != nil {
-		return s.failJob("generate-report", "report", startedAt, err)
+		return s.failJob("generate-report", "report", startedAt, err, options)
 	}
 
 	predictions := make([]model.ReportPredictionRecord, 0, len(build.predictions))
@@ -115,7 +120,7 @@ func (s *ReportService) GenerateNow(ctx context.Context, reportDate string) (mod
 		predictions = append(predictions, item)
 	}
 	if err := s.repo.ReplacePredictions(record.ID, predictions); err != nil {
-		return s.failJob("generate-report", "report", startedAt, err)
+		return s.failJob("generate-report", "report", startedAt, err, options)
 	}
 
 	finishedAt := time.Now()
@@ -127,49 +132,59 @@ func (s *ReportService) GenerateNow(ctx context.Context, reportDate string) (mod
 		FinishedAt: finishedAt.Format(time.RFC3339),
 		Message:    fmt.Sprintf("report generated for %s", date.Format("2006-01-02")),
 	}
+	fillJobRunMeta(&run, options, int(finishedAt.Sub(startedAt).Milliseconds()), nil)
 
 	err = s.repo.SaveJobRun(model.JobRunRecord{
-		JobName:    run.JobName,
-		JobType:    run.JobType,
-		Status:     run.Status,
-		StartedAt:  startedAt,
-		FinishedAt: finishedAt,
-		DurationMS: int(finishedAt.Sub(startedAt).Milliseconds()),
-		Message:    run.Message,
+		JobName:      run.JobName,
+		JobType:      run.JobType,
+		Status:       run.Status,
+		TriggerMode:  run.TriggerMode,
+		Attempt:      run.Attempt,
+		MaxAttempts:  run.MaxAttempts,
+		ScheduledFor: options.ScheduledFor,
+		StartedAt:    startedAt,
+		FinishedAt:   finishedAt,
+		DurationMS:   run.DurationMS,
+		Message:      run.Message,
 	})
 	return run, err
 }
 
 func (s *ReportService) ScoreNow(ctx context.Context, reportDate string) (model.JobRun, error) {
+	return s.ScoreWithOptions(ctx, reportDate, manualJobRunOptions())
+}
+
+func (s *ReportService) ScoreWithOptions(ctx context.Context, reportDate string, options JobRunOptions) (model.JobRun, error) {
+	options = normalizeJobRunOptions(options, "manual")
 	startedAt := time.Now()
 	defaultDate := time.Now().AddDate(0, 0, -1)
 	date, err := resolveReportDate(reportDate, defaultDate)
 	if err != nil {
-		return s.failJob("score-report", "scoring", startedAt, err)
+		return s.failJob("score-report", "scoring", startedAt, err, options)
 	}
 
 	report, err := s.repo.GetReportByDate(date.Format("2006-01-02"))
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		if _, err := s.GenerateNow(ctx, date.Format("2006-01-02")); err != nil {
-			return s.failJob("score-report", "scoring", startedAt, err)
+			return s.failJob("score-report", "scoring", startedAt, err, options)
 		}
 		report, err = s.repo.GetReportByDate(date.Format("2006-01-02"))
 	}
 	if err != nil {
-		return s.failJob("score-report", "scoring", startedAt, err)
+		return s.failJob("score-report", "scoring", startedAt, err, options)
 	}
 
 	predictions, err := s.repo.ListPredictions(report.ID)
 	if err != nil {
-		return s.failJob("score-report", "scoring", startedAt, err)
+		return s.failJob("score-report", "scoring", startedAt, err, options)
 	}
 	if len(predictions) == 0 {
-		return s.failJob("score-report", "scoring", startedAt, errors.New("no predictions found for report"))
+		return s.failJob("score-report", "scoring", startedAt, errors.New("no predictions found for report"), options)
 	}
 
 	scoreRecord := s.buildScore(report, predictions[0])
 	if _, err := s.repo.UpsertScore(scoreRecord); err != nil {
-		return s.failJob("score-report", "scoring", startedAt, err)
+		return s.failJob("score-report", "scoring", startedAt, err, options)
 	}
 
 	finishedAt := time.Now()
@@ -181,15 +196,20 @@ func (s *ReportService) ScoreNow(ctx context.Context, reportDate string) (model.
 		FinishedAt: finishedAt.Format(time.RFC3339),
 		Message:    fmt.Sprintf("report scored for %s", date.Format("2006-01-02")),
 	}
+	fillJobRunMeta(&run, options, int(finishedAt.Sub(startedAt).Milliseconds()), nil)
 
 	err = s.repo.SaveJobRun(model.JobRunRecord{
-		JobName:    run.JobName,
-		JobType:    run.JobType,
-		Status:     run.Status,
-		StartedAt:  startedAt,
-		FinishedAt: finishedAt,
-		DurationMS: int(finishedAt.Sub(startedAt).Milliseconds()),
-		Message:    run.Message,
+		JobName:      run.JobName,
+		JobType:      run.JobType,
+		Status:       run.Status,
+		TriggerMode:  run.TriggerMode,
+		Attempt:      run.Attempt,
+		MaxAttempts:  run.MaxAttempts,
+		ScheduledFor: options.ScheduledFor,
+		StartedAt:    startedAt,
+		FinishedAt:   finishedAt,
+		DurationMS:   run.DurationMS,
+		Message:      run.Message,
 	})
 	return run, err
 }
@@ -610,7 +630,7 @@ func (s *ReportService) lookupAccuracyScore(reportID uint) float64 {
 	return roundTo(scoreRecord.TotalScore, 2)
 }
 
-func (s *ReportService) failJob(jobName, jobType string, startedAt time.Time, err error) (model.JobRun, error) {
+func (s *ReportService) failJob(jobName, jobType string, startedAt time.Time, err error, options JobRunOptions) (model.JobRun, error) {
 	finishedAt := time.Now()
 	run := model.JobRun{
 		JobName:    jobName,
@@ -620,16 +640,21 @@ func (s *ReportService) failJob(jobName, jobType string, startedAt time.Time, er
 		FinishedAt: finishedAt.Format(time.RFC3339),
 		Message:    err.Error(),
 	}
+	fillJobRunMeta(&run, options, int(finishedAt.Sub(startedAt).Milliseconds()), err)
 
 	saveErr := s.repo.SaveJobRun(model.JobRunRecord{
-		JobName:     jobName,
-		JobType:     jobType,
-		Status:      "failed",
-		StartedAt:   startedAt,
-		FinishedAt:  finishedAt,
-		DurationMS:  int(finishedAt.Sub(startedAt).Milliseconds()),
-		Message:     fmt.Sprintf("%s failed", jobName),
-		ErrorDetail: err.Error(),
+		JobName:      jobName,
+		JobType:      jobType,
+		Status:       "failed",
+		TriggerMode:  run.TriggerMode,
+		Attempt:      run.Attempt,
+		MaxAttempts:  run.MaxAttempts,
+		ScheduledFor: options.ScheduledFor,
+		StartedAt:    startedAt,
+		FinishedAt:   finishedAt,
+		DurationMS:   run.DurationMS,
+		Message:      fmt.Sprintf("%s failed", jobName),
+		ErrorDetail:  err.Error(),
 	})
 	if saveErr != nil {
 		return run, errors.Join(err, saveErr)

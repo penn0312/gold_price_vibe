@@ -24,12 +24,14 @@ func main() {
 	newsRepo := repository.NewNewsRepository(db)
 	factorRepo := repository.NewFactorRepository(db)
 	reportRepo := repository.NewReportRepository(db)
+	jobRepo := repository.NewJobRepository(db)
 	provider := source.NewPriceProvider(cfg)
 	newsProvider := source.NewNewsProvider(cfg)
 	collector := service.NewPriceCollector(priceRepo, provider)
 	newsIngestion := service.NewNewsIngestionService(newsRepo, newsProvider)
 	factorService := service.NewFactorService(factorRepo, priceRepo, newsRepo)
 	reportService := service.NewReportService(reportRepo, priceRepo, factorRepo, newsRepo)
+	jobRunner := service.NewJobRunner(cfg, jobRepo, collector, newsIngestion, factorService, reportService)
 	if err := collector.BootstrapHistory(context.Background()); err != nil {
 		log.Printf("bootstrap history failed: %v", err)
 	}
@@ -42,9 +44,13 @@ func main() {
 	if err := reportService.Bootstrap(context.Background()); err != nil {
 		log.Printf("bootstrap reports failed: %v", err)
 	}
+	if err := jobRunner.EnsureDefinitions(); err != nil {
+		log.Printf("bootstrap jobs failed: %v", err)
+	}
 	cron.StartPriceCollector(context.Background(), cfg, collector)
+	service.NewJobScheduler(cfg, jobRepo, jobRunner).Start(context.Background())
 
-	svc := service.NewAppService(priceRepo, newsRepo, collector, newsIngestion, factorService, reportService)
+	svc := service.NewAppService(priceRepo, newsRepo, collector, newsIngestion, factorService, reportService, jobRunner)
 	router := api.NewRouter(cfg, svc)
 
 	log.Printf("sqlite ready at %s", cfg.DatabasePath)

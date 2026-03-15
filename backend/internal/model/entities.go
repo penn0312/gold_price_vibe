@@ -168,17 +168,44 @@ func (ReportScoreRecord) TableName() string {
 	return "report_scores"
 }
 
+type JobDefinitionRecord struct {
+	ID              uint   `gorm:"primaryKey"`
+	JobName         string `gorm:"size:64;uniqueIndex"`
+	JobType         string `gorm:"size:32"`
+	ScheduleSpec    string `gorm:"size:64"`
+	IsEnabled       bool
+	RetryLimit      int
+	RetryBackoffSec int
+	TimeoutSec      int
+	LastRunStatus   string `gorm:"size:16"`
+	LastRunAt       *time.Time
+	LastFinishedAt  *time.Time
+	LastDurationMS  int
+	LastMessage     string
+	LastErrorDetail string
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+}
+
+func (JobDefinitionRecord) TableName() string {
+	return "job_definitions"
+}
+
 type JobRunRecord struct {
-	ID          uint   `gorm:"primaryKey"`
-	JobName     string `gorm:"size:64;index"`
-	JobType     string `gorm:"size:32"`
-	Status      string `gorm:"size:16"`
-	StartedAt   time.Time
-	FinishedAt  time.Time
-	DurationMS  int
-	Message     string
-	ErrorDetail string
-	CreatedAt   time.Time
+	ID           uint   `gorm:"primaryKey"`
+	JobName      string `gorm:"size:64;index"`
+	JobType      string `gorm:"size:32"`
+	Status       string `gorm:"size:16"`
+	TriggerMode  string `gorm:"size:16"`
+	Attempt      int
+	MaxAttempts  int
+	ScheduledFor *time.Time
+	StartedAt    time.Time
+	FinishedAt   time.Time
+	DurationMS   int
+	Message      string
+	ErrorDetail  string
+	CreatedAt    time.Time
 }
 
 func OpenDatabase(path string) (*gorm.DB, error) {
@@ -197,6 +224,7 @@ func OpenDatabase(path string) (*gorm.DB, error) {
 		&AnalysisReportRecord{},
 		&ReportPredictionRecord{},
 		&ReportScoreRecord{},
+		&JobDefinitionRecord{},
 		&JobRunRecord{},
 	); err != nil {
 		return nil, err

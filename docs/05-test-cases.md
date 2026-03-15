@@ -60,6 +60,8 @@
 | `CRON-003` | 报告任务 | 每日执行 | 已配置每日时间 | 等待触发 | 当日报告自动生成 |
 | `CRON-004` | 评分任务 | 次日执行 | 有昨日报告 | 等待触发 | 自动评分成功 |
 | `CRON-005` | 任务失败重试 | 采集失败 | 启用重试机制 | 模拟失败 | 任务按规则重试 |
+| `CRON-006` | 任务定义 | 查看自动任务配置 | 服务已启动 | 调用 `/admin/jobs/definitions` | 返回调度频率、超时和最近状态 |
+| `CRON-007` | 任务记录 | 自动任务元数据入库 | 调度器已执行任务 | 查询 `/admin/jobs/runs` | 返回 `trigger_mode/attempt/max_attempts/scheduled_for` |
 
 ## 5. 前端页面测试
 
@@ -165,3 +167,4 @@
 | `REPORT-003` | 报告详情 | 查看结构化预测与评分 | 报告已生成并评分 | 调用 `/reports/:id` | 返回 `predictions` 和 `score` 详情 |
 | `REPORT-004` | 报告评分 | 手动评分指定日报 | 已存在指定日报 | 调用 `POST /admin/jobs/score-report` 并传 `report_date` | 新增或覆盖 `report_scores` |
 | `REPORT-005` | 准确率曲线 | 历史评分真实读库 | 数据库已有历史评分 | 调用 `/reports/accuracy/curve?range=30d` | 返回数据库中的评分曲线和均分 |
+| `REPORT-006` | 调度联动 | 自动生成与评分闭环 | 已启用日报和评分任务 | 等待两个日常任务执行 | `analysis_reports`、`report_scores` 与 `job_runs` 同步更新 |

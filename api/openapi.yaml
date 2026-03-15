@@ -244,9 +244,17 @@ paths:
       responses:
         "200":
           description: OK
+  /admin/jobs/definitions:
+    get:
+      summary: Get job definitions
+      description: Returns persisted job schedule definitions, retry policy and latest run status.
+      responses:
+        "200":
+          description: OK
   /admin/jobs/runs:
     get:
       summary: Get job run records
+      description: Returns recent manual and scheduled job runs, including retry metadata.
       responses:
         "200":
           description: OK

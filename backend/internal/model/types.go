@@ -175,11 +175,33 @@ type DashboardOverview struct {
 }
 
 type JobRun struct {
-	ID         int64  `json:"id"`
-	JobName    string `json:"job_name"`
-	JobType    string `json:"job_type"`
-	Status     string `json:"status"`
-	StartedAt  string `json:"started_at"`
-	FinishedAt string `json:"finished_at"`
-	Message    string `json:"message"`
+	ID           int64  `json:"id"`
+	JobName      string `json:"job_name"`
+	JobType      string `json:"job_type"`
+	Status       string `json:"status"`
+	TriggerMode  string `json:"trigger_mode"`
+	Attempt      int    `json:"attempt"`
+	MaxAttempts  int    `json:"max_attempts"`
+	ScheduledFor string `json:"scheduled_for,omitempty"`
+	StartedAt    string `json:"started_at"`
+	FinishedAt   string `json:"finished_at"`
+	DurationMS   int    `json:"duration_ms"`
+	Message      string `json:"message"`
+	ErrorDetail  string `json:"error_detail,omitempty"`
+}
+
+type JobDefinition struct {
+	JobName         string `json:"job_name"`
+	JobType         string `json:"job_type"`
+	ScheduleSpec    string `json:"schedule_spec"`
+	IsEnabled       bool   `json:"is_enabled"`
+	RetryLimit      int    `json:"retry_limit"`
+	RetryBackoffSec int    `json:"retry_backoff_sec"`
+	TimeoutSec      int    `json:"timeout_sec"`
+	LastRunStatus   string `json:"last_run_status"`
+	LastRunAt       string `json:"last_run_at,omitempty"`
+	LastFinishedAt  string `json:"last_finished_at,omitempty"`
+	LastDurationMS  int    `json:"last_duration_ms"`
+	LastMessage     string `json:"last_message"`
+	LastErrorDetail string `json:"last_error_detail,omitempty"`
 }

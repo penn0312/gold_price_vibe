@@ -29,6 +29,7 @@ type MarketService interface {
 	GenerateReport(reportDate string) model.JobRun
 	ScoreReport(reportDate string) model.JobRun
 	GetJobRuns() []model.JobRun
+	GetJobDefinitions() []model.JobDefinition
 }
 
 type MockMarketService struct {
@@ -451,6 +452,51 @@ func (s *MockMarketService) GetJobRuns() []model.JobRun {
 	}
 
 	return runs
+}
+
+func (s *MockMarketService) GetJobDefinitions() []model.JobDefinition {
+	return []model.JobDefinition{
+		{
+			JobName:         "fetch-news",
+			JobType:         "collector",
+			ScheduleSpec:    "@every:600s",
+			IsEnabled:       true,
+			RetryLimit:      2,
+			RetryBackoffSec: 10,
+			TimeoutSec:      20,
+			LastRunStatus:   "success",
+		},
+		{
+			JobName:         "update-factors",
+			JobType:         "collector",
+			ScheduleSpec:    "@every:900s",
+			IsEnabled:       true,
+			RetryLimit:      2,
+			RetryBackoffSec: 10,
+			TimeoutSec:      20,
+			LastRunStatus:   "success",
+		},
+		{
+			JobName:         "generate-report",
+			JobType:         "report",
+			ScheduleSpec:    "daily:09:00",
+			IsEnabled:       true,
+			RetryLimit:      2,
+			RetryBackoffSec: 10,
+			TimeoutSec:      20,
+			LastRunStatus:   "success",
+		},
+		{
+			JobName:         "score-report",
+			JobType:         "scoring",
+			ScheduleSpec:    "daily:09:10",
+			IsEnabled:       true,
+			RetryLimit:      2,
+			RetryBackoffSec: 10,
+			TimeoutSec:      20,
+			LastRunStatus:   "success",
+		},
+	}
 }
 
 func defaultInterval(rangeValue string) string {

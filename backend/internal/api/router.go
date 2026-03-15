@@ -53,6 +53,7 @@ func NewRouter(cfg config.Config, svc service.MarketService) *gin.Engine {
 			admin.POST("/update-factors", handler.TriggerUpdateFactors)
 			admin.POST("/generate-report", handler.TriggerGenerateReport)
 			admin.POST("/score-report", handler.TriggerScoreReport)
+			admin.GET("/definitions", handler.GetJobDefinitions)
 			admin.GET("/runs", handler.GetJobRuns)
 		}
 	}
@@ -262,6 +263,10 @@ func (h Handler) TriggerScoreReport(c *gin.Context) {
 
 func (h Handler) GetJobRuns(c *gin.Context) {
 	success(c, h.service.GetJobRuns())
+}
+
+func (h Handler) GetJobDefinitions(c *gin.Context) {
+	success(c, h.service.GetJobDefinitions())
 }
 
 func success(c *gin.Context, data interface{}) {

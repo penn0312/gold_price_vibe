@@ -110,19 +110,24 @@ func (s *FactorService) Bootstrap(ctx context.Context) error {
 }
 
 func (s *FactorService) UpdateNow(ctx context.Context) (model.JobRun, error) {
+	return s.UpdateWithOptions(ctx, manualJobRunOptions())
+}
+
+func (s *FactorService) UpdateWithOptions(ctx context.Context, options JobRunOptions) (model.JobRun, error) {
+	options = normalizeJobRunOptions(options, "manual")
 	startedAt := time.Now()
 	if err := s.ensureDefinitions(); err != nil {
-		return s.failJob(startedAt, err)
+		return s.failJob(startedAt, err, options)
 	}
 
 	sourceRecord, err := s.repo.EnsureSource(factorSourceMeta)
 	if err != nil {
-		return s.failJob(startedAt, err)
+		return s.failJob(startedAt, err, options)
 	}
 
 	definitions, err := s.repo.ListDefinitions()
 	if err != nil {
-		return s.failJob(startedAt, err)
+		return s.failJob(startedAt, err, options)
 	}
 
 	contextData := s.buildContext()
@@ -131,14 +136,14 @@ func (s *FactorService) UpdateNow(ctx context.Context) (model.JobRun, error) {
 	for _, definition := range definitions {
 		select {
 		case <-ctx.Done():
-			return s.failJob(startedAt, ctx.Err())
+			return s.failJob(startedAt, ctx.Err(), options)
 		default:
 		}
 		snapshots = append(snapshots, buildFactorSnapshot(definition, sourceRecord.ID, capturedAt, contextData))
 	}
 
 	if err := s.repo.SaveSnapshots(snapshots); err != nil {
-		return s.failJob(startedAt, err)
+		return s.failJob(startedAt, err, options)
 	}
 
 	finishedAt := time.Now()
@@ -150,15 +155,20 @@ func (s *FactorService) UpdateNow(ctx context.Context) (model.JobRun, error) {
 		FinishedAt: finishedAt.Format(time.RFC3339),
 		Message:    fmt.Sprintf("factor snapshots updated: %d", len(snapshots)),
 	}
+	fillJobRunMeta(&run, options, int(finishedAt.Sub(startedAt).Milliseconds()), nil)
 
 	err = s.repo.SaveJobRun(model.JobRunRecord{
-		JobName:    run.JobName,
-		JobType:    run.JobType,
-		Status:     run.Status,
-		StartedAt:  startedAt,
-		FinishedAt: finishedAt,
-		DurationMS: int(finishedAt.Sub(startedAt).Milliseconds()),
-		Message:    run.Message,
+		JobName:      run.JobName,
+		JobType:      run.JobType,
+		Status:       run.Status,
+		TriggerMode:  run.TriggerMode,
+		Attempt:      run.Attempt,
+		MaxAttempts:  run.MaxAttempts,
+		ScheduledFor: options.ScheduledFor,
+		StartedAt:    startedAt,
+		FinishedAt:   finishedAt,
+		DurationMS:   run.DurationMS,
+		Message:      run.Message,
 	})
 	return run, err
 }
@@ -347,7 +357,7 @@ func (s *FactorService) buildContext() factorContext {
 	return contextData
 }
 
-func (s *FactorService) failJob(startedAt time.Time, err error) (model.JobRun, error) {
+func (s *FactorService) failJob(startedAt time.Time, err error, options JobRunOptions) (model.JobRun, error) {
 	finishedAt := time.Now()
 	run := model.JobRun{
 		JobName:    "update-factors",
@@ -357,16 +367,21 @@ func (s *FactorService) failJob(startedAt time.Time, err error) (model.JobRun, e
 		FinishedAt: finishedAt.Format(time.RFC3339),
 		Message:    err.Error(),
 	}
+	fillJobRunMeta(&run, options, int(finishedAt.Sub(startedAt).Milliseconds()), err)
 
 	saveErr := s.repo.SaveJobRun(model.JobRunRecord{
-		JobName:     run.JobName,
-		JobType:     run.JobType,
-		Status:      run.Status,
-		StartedAt:   startedAt,
-		FinishedAt:  finishedAt,
-		DurationMS:  int(finishedAt.Sub(startedAt).Milliseconds()),
-		Message:     "factor update failed",
-		ErrorDetail: err.Error(),
+		JobName:      run.JobName,
+		JobType:      run.JobType,
+		Status:       run.Status,
+		TriggerMode:  run.TriggerMode,
+		Attempt:      run.Attempt,
+		MaxAttempts:  run.MaxAttempts,
+		ScheduledFor: options.ScheduledFor,
+		StartedAt:    startedAt,
+		FinishedAt:   finishedAt,
+		DurationMS:   run.DurationMS,
+		Message:      "factor update failed",
+		ErrorDetail:  err.Error(),
 	})
 	if saveErr != nil {
 		return run, errors.Join(err, saveErr)

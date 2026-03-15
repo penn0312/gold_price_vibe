@@ -59,27 +59,32 @@ func (c *PriceCollector) BootstrapHistory(ctx context.Context) error {
 }
 
 func (c *PriceCollector) CollectNow(ctx context.Context) (model.JobRun, error) {
+	return c.CollectWithOptions(ctx, manualJobRunOptions())
+}
+
+func (c *PriceCollector) CollectWithOptions(ctx context.Context, options JobRunOptions) (model.JobRun, error) {
+	options = normalizeJobRunOptions(options, "manual")
 	startedAt := time.Now()
 	quote, err := c.provider.CurrentPrice(ctx)
 	if err != nil {
-		return c.failJob(startedAt, err)
+		return c.failJob(startedAt, err, options)
 	}
 	quote, err = c.validateRealtimeQuote(quote)
 	if err != nil {
-		return c.failJob(startedAt, err)
+		return c.failJob(startedAt, err, options)
 	}
 
 	sourceRecord, err := c.repo.EnsureSource(c.provider.Metadata())
 	if err != nil {
-		return c.failJob(startedAt, err)
+		return c.failJob(startedAt, err, options)
 	}
 
 	if _, err := c.repo.SaveTick(sourceRecord.ID, quote); err != nil {
-		return c.failJob(startedAt, err)
+		return c.failJob(startedAt, err, options)
 	}
 
 	if err := c.rebuildCandles(quote.Symbol, quote.CapturedAt); err != nil {
-		return c.failJob(startedAt, err)
+		return c.failJob(startedAt, err, options)
 	}
 
 	finishedAt := time.Now()
@@ -91,15 +96,20 @@ func (c *PriceCollector) CollectNow(ctx context.Context) (model.JobRun, error) {
 		FinishedAt: finishedAt.Format(time.RFC3339),
 		Message:    "gold price collected and candles updated",
 	}
+	fillJobRunMeta(&run, options, int(finishedAt.Sub(startedAt).Milliseconds()), nil)
 
 	err = c.repo.SaveJobRun(model.JobRunRecord{
-		JobName:    run.JobName,
-		JobType:    run.JobType,
-		Status:     run.Status,
-		StartedAt:  startedAt,
-		FinishedAt: finishedAt,
-		DurationMS: int(finishedAt.Sub(startedAt).Milliseconds()),
-		Message:    run.Message,
+		JobName:      run.JobName,
+		JobType:      run.JobType,
+		Status:       run.Status,
+		TriggerMode:  run.TriggerMode,
+		Attempt:      run.Attempt,
+		MaxAttempts:  run.MaxAttempts,
+		ScheduledFor: options.ScheduledFor,
+		StartedAt:    startedAt,
+		FinishedAt:   finishedAt,
+		DurationMS:   run.DurationMS,
+		Message:      run.Message,
 	})
 
 	return run, err
@@ -234,7 +244,7 @@ func (c *PriceCollector) validateRealtimeQuote(quote source.PriceQuote) (source.
 	return quote, nil
 }
 
-func (c *PriceCollector) failJob(startedAt time.Time, err error) (model.JobRun, error) {
+func (c *PriceCollector) failJob(startedAt time.Time, err error, options JobRunOptions) (model.JobRun, error) {
 	finishedAt := time.Now()
 	run := model.JobRun{
 		JobName:    "collect-price",
@@ -244,16 +254,21 @@ func (c *PriceCollector) failJob(startedAt time.Time, err error) (model.JobRun, 
 		FinishedAt: finishedAt.Format(time.RFC3339),
 		Message:    err.Error(),
 	}
+	fillJobRunMeta(&run, options, int(finishedAt.Sub(startedAt).Milliseconds()), err)
 
 	saveErr := c.repo.SaveJobRun(model.JobRunRecord{
-		JobName:     run.JobName,
-		JobType:     run.JobType,
-		Status:      run.Status,
-		StartedAt:   startedAt,
-		FinishedAt:  finishedAt,
-		DurationMS:  int(finishedAt.Sub(startedAt).Milliseconds()),
-		Message:     "price collector failed",
-		ErrorDetail: err.Error(),
+		JobName:      run.JobName,
+		JobType:      run.JobType,
+		Status:       run.Status,
+		TriggerMode:  run.TriggerMode,
+		Attempt:      run.Attempt,
+		MaxAttempts:  run.MaxAttempts,
+		ScheduledFor: options.ScheduledFor,
+		StartedAt:    startedAt,
+		FinishedAt:   finishedAt,
+		DurationMS:   run.DurationMS,
+		Message:      "price collector failed",
+		ErrorDetail:  err.Error(),
 	})
 	if saveErr != nil {
 		return run, errors.Join(err, saveErr)

@@ -34,6 +34,8 @@ All notable changes to this project should be documented in this file.
 - 新增报告仓储层、结构化预测模型、评分模型和 `/api/v1/reports/*` 真实读库接口。
 - 新增规则化日报生成、次日评分任务、历史准确率曲线持久化与请求日期支持。
 - 新增报告系统仓储测试、服务测试和分页/详情/评分回读能力。
+- 新增 `job_definitions` 任务定义表、统一任务调度器、自动重试和告警钩子。
+- 新增 `/api/v1/admin/jobs/definitions` 任务中心接口。
 
 ### Docs
 
@@ -46,6 +48,7 @@ All notable changes to this project should be documented in this file.
 - 补充了因子接口字段说明、历史示例和 `update-factors` 当前行为。
 - 补充了报告、预测、评分表的 Phase 5 当前实现约束。
 - 补充了报告列表、详情、评分与后台任务的字段说明和响应示例。
+- 补充了任务定义表、任务运行扩展字段、自动调度和重试策略说明。
 
 ### Tests
 
@@ -56,3 +59,4 @@ All notable changes to this project should be documented in this file.
 - 新增新闻抓取、去重、筛选和详情测试项。
 - 新增因子预热、历史查询、手动更新和规则引擎联动测试项。
 - 新增报告生成、历史预热、详情评分和准确率曲线测试项。
+- 新增任务定义初始化和失败自动重试测试。
