@@ -15,6 +15,7 @@ paths:
   /dashboard/overview:
     get:
       summary: Get dashboard overview
+      description: Returns overview cards. Arrays may be empty when the system has not accumulated enough data yet.
       responses:
         "200":
           description: OK
@@ -28,7 +29,7 @@ paths:
   /prices/history:
     get:
       summary: Get historical gold price candles
-      description: Returns candles aggregated from normalized CNY/g ticks.
+      description: Returns candles aggregated from normalized CNY/g ticks. When no candles are available yet, `items` may be an empty array.
       parameters:
         - in: query
           name: range
@@ -179,7 +180,7 @@ paths:
   /reports/accuracy/curve:
     get:
       summary: Get report accuracy curve
-      description: Returns persisted historical score curve for the selected window.
+      description: Returns persisted historical score curve for the selected window. When no scoring history is available yet, `items` may be an empty array.
       parameters:
         - in: query
           name: range

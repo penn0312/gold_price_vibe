@@ -98,6 +98,11 @@ button {
   box-shadow: var(--shadow);
 }
 
+.refresh-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
 .status-card,
 .card {
   background: var(--surface);
@@ -188,6 +193,15 @@ button {
   font-size: 13px;
 }
 
+.status-pill {
+  padding: 7px 10px;
+  border-radius: 999px;
+  border: 1px solid #eadfcb;
+  background: #fff9ef;
+  color: #9f7a2b;
+  font-size: 12px;
+}
+
 .chart-card {
   margin-bottom: 20px;
 }
@@ -275,4 +289,3 @@ button {
     flex-direction: column;
   }
 }
-
