@@ -221,6 +221,13 @@ Phase 4 当前实现约束：
 | `created_at` | DATETIME | 创建时间 |
 | `updated_at` | DATETIME | 更新时间 |
 
+Phase 5 当前实现约束：
+
+- 当前报告生成器为本地规则引擎版本，`ai_provider=rule-engine`，后续可替换成真实大模型。
+- 启动时若报告表为空，会自动预热近 30 天日报，保证列表、详情和准确率曲线可直接展示。
+- `report_date` 代表“生成分析的日期”，预测目标日默认写入次日 `report_predictions.target_date`。
+- `input_snapshot_json` 当前保存参考价格、综合评分、因子数量与新闻标题摘要。
+
 ### 3.8 `report_predictions`
 
 将报告中的核心预测结构化，便于评分。
@@ -236,6 +243,12 @@ Phase 4 当前实现约束：
 | `predicted_close` | DECIMAL(10,3) NULL | 预测收盘 |
 | `factor_focus_json` | TEXT | 重点关注因子 |
 | `created_at` | DATETIME | 创建时间 |
+
+Phase 5 当前实现约束：
+
+- 当前每份报告默认生成 1 条次日预测记录，便于后续按天评分。
+- `factor_focus_json` 存储本次预测最关注的驱动因子列表。
+- `predicted_direction` 使用 `up/down/flat`。
 
 ### 3.9 `report_scores`
 
@@ -256,6 +269,12 @@ Phase 4 当前实现约束：
 | `actual_low` | DECIMAL(10,3) | 实际最低 |
 | `score_explanation` | TEXT | 评分说明 |
 | `created_at` | DATETIME | 创建时间 |
+
+Phase 5 当前实现约束：
+
+- 当前评分由本地规则引擎计算，按 `direction + range + factor_hit + risk` 四个维度汇总。
+- 默认评分对象为“前一日报告”，手动接口也支持指定 `report_date` 重算。
+- `total_score` 范围为 `0 ~ 100`，已实现幂等 upsert，重复评分会覆盖旧结果。
 
 ### 3.10 `job_runs`
 

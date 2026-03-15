@@ -14,16 +14,18 @@ type AppService struct {
 	collector *PriceCollector
 	news      *NewsIngestionService
 	factors   *FactorService
+	reports   *ReportService
 	mock      *MockMarketService
 }
 
-func NewAppService(priceRepo *repository.PriceRepository, newsRepo *repository.NewsRepository, collector *PriceCollector, news *NewsIngestionService, factors *FactorService) *AppService {
+func NewAppService(priceRepo *repository.PriceRepository, newsRepo *repository.NewsRepository, collector *PriceCollector, news *NewsIngestionService, factors *FactorService, reports *ReportService) *AppService {
 	return &AppService{
 		priceRepo: priceRepo,
 		newsRepo:  newsRepo,
 		collector: collector,
 		news:      news,
 		factors:   factors,
+		reports:   reports,
 		mock:      NewMockMarketService(),
 	}
 }
@@ -136,18 +138,30 @@ func (s *AppService) GetFactorHistory(code, rangeValue string) model.FactorHisto
 }
 
 func (s *AppService) GetLatestReport() model.ReportSummary {
+	if s.reports != nil {
+		return s.reports.GetLatestReport()
+	}
 	return s.mock.GetLatestReport()
 }
 
-func (s *AppService) GetReports() []model.ReportSummary {
-	return s.mock.GetReports()
+func (s *AppService) ListReports(query model.ReportQuery) model.ReportList {
+	if s.reports != nil {
+		return s.reports.ListReports(query)
+	}
+	return s.mock.ListReports(query)
 }
 
 func (s *AppService) GetReportDetail(id int64) (model.ReportDetail, bool) {
+	if s.reports != nil {
+		return s.reports.GetReportDetail(id)
+	}
 	return s.mock.GetReportDetail(id)
 }
 
 func (s *AppService) GetAccuracyCurve(rangeValue string) model.AccuracyCurve {
+	if s.reports != nil {
+		return s.reports.GetAccuracyCurve(rangeValue)
+	}
 	return s.mock.GetAccuracyCurve(rangeValue)
 }
 
@@ -178,6 +192,24 @@ func (s *AppService) TriggerJob(jobName string) model.JobRun {
 		Message:    run.Message,
 	})
 	return run
+}
+
+func (s *AppService) GenerateReport(reportDate string) model.JobRun {
+	if s.reports != nil {
+		if run, err := s.reports.GenerateNow(context.Background(), reportDate); err == nil {
+			return run
+		}
+	}
+	return s.mock.GenerateReport(reportDate)
+}
+
+func (s *AppService) ScoreReport(reportDate string) model.JobRun {
+	if s.reports != nil {
+		if run, err := s.reports.ScoreNow(context.Background(), reportDate); err == nil {
+			return run
+		}
+	}
+	return s.mock.ScoreReport(reportDate)
 }
 
 func (s *AppService) GetJobRuns() []model.JobRun {

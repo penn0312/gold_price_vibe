@@ -22,10 +22,12 @@ type MarketService interface {
 	GetFactorDefinitions() []model.FactorDefinition
 	GetFactorHistory(code, rangeValue string) model.FactorHistory
 	GetLatestReport() model.ReportSummary
-	GetReports() []model.ReportSummary
+	ListReports(query model.ReportQuery) model.ReportList
 	GetReportDetail(id int64) (model.ReportDetail, bool)
 	GetAccuracyCurve(rangeValue string) model.AccuracyCurve
 	TriggerJob(jobName string) model.JobRun
+	GenerateReport(reportDate string) model.JobRun
+	ScoreReport(reportDate string) model.JobRun
 	GetJobRuns() []model.JobRun
 }
 
@@ -268,15 +270,15 @@ func (s *MockMarketService) GetFactorHistory(code, rangeValue string) model.Fact
 }
 
 func (s *MockMarketService) GetLatestReport() model.ReportSummary {
-	reports := s.GetReports()
-	if len(reports) == 0 {
+	reportList := s.ListReports(model.ReportQuery{Page: 1, PageSize: 10})
+	if len(reportList.Items) == 0 {
 		return model.ReportSummary{}
 	}
 
-	return reports[0]
+	return reportList.Items[0]
 }
 
-func (s *MockMarketService) GetReports() []model.ReportSummary {
+func (s *MockMarketService) ListReports(query model.ReportQuery) model.ReportList {
 	now := time.Now()
 	reports := []model.ReportSummary{
 		{
@@ -321,11 +323,27 @@ func (s *MockMarketService) GetReports() []model.ReportSummary {
 		return reports[i].ReportDate > reports[j].ReportDate
 	})
 
-	return reports
+	page := normalizePage(query.Page)
+	pageSize := normalizePageSize(query.PageSize)
+	start := (page - 1) * pageSize
+	if start >= len(reports) {
+		return model.ReportList{Items: []model.ReportSummary{}, Page: page, PageSize: pageSize, Total: int64(len(reports))}
+	}
+
+	end := start + pageSize
+	if end > len(reports) {
+		end = len(reports)
+	}
+	return model.ReportList{
+		Items:    reports[start:end],
+		Page:     page,
+		PageSize: pageSize,
+		Total:    int64(len(reports)),
+	}
 }
 
 func (s *MockMarketService) GetReportDetail(id int64) (model.ReportDetail, bool) {
-	for _, item := range s.GetReports() {
+	for _, item := range s.ListReports(model.ReportQuery{Page: 1, PageSize: 20}).Items {
 		if item.ID == id {
 			return model.ReportDetail{
 				ReportSummary: item,
@@ -335,6 +353,31 @@ func (s *MockMarketService) GetReportDetail(id int64) (model.ReportDetail, bool)
 					"三、风险提示：若美联储释放更鹰派表态，或美元快速反弹，金价可能回吐短线涨幅。",
 					"四、策略观察：关注夜盘波动和次日宏观事件窗口，重点观察 560-566 元/克区域表现。",
 				}, "\n\n"),
+				AIProvider:    "mock-ai",
+				ModelName:     "mock-report-engine",
+				PromptVersion: "mock-v1",
+				Predictions: []model.ReportPrediction{
+					{
+						TargetDate:         time.Now().Add(24 * time.Hour).Format("2006-01-02"),
+						PredictedDirection: "up",
+						PredictedLow:       560.2,
+						PredictedHigh:      566.1,
+						PredictedClose:     563.8,
+						FactorFocus:        []string{"避险情绪升温", "美元指数回落"},
+					},
+				},
+				Score: &model.ReportScoreDetail{
+					ScoredDate:       time.Now().Format("2006-01-02"),
+					DirectionScore:   32,
+					RangeScore:       26,
+					FactorHitScore:   15,
+					RiskScore:        10,
+					TotalScore:       83,
+					ActualClose:      563.6,
+					ActualHigh:       565.4,
+					ActualLow:        560.7,
+					ScoreExplanation: "mock scoring explanation",
+				},
 			}, true
 		}
 	}
@@ -380,6 +423,14 @@ func (s *MockMarketService) TriggerJob(jobName string) model.JobRun {
 		FinishedAt: finishedAt.Format(time.RFC3339),
 		Message:    fmt.Sprintf("%s executed with mock pipeline", jobName),
 	}
+}
+
+func (s *MockMarketService) GenerateReport(reportDate string) model.JobRun {
+	return s.TriggerJob("generate-report")
+}
+
+func (s *MockMarketService) ScoreReport(reportDate string) model.JobRun {
+	return s.TriggerJob("score-report")
 }
 
 func (s *MockMarketService) GetJobRuns() []model.JobRun {

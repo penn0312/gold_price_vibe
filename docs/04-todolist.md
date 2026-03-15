@@ -64,14 +64,22 @@
 
 ## 6. Phase 5: AI 报告与评分
 
-- [ ] 定义 `analysis_reports`、`report_predictions`、`report_scores` 模型。
-- [ ] 设计 AI 输入模板，包含价格、因子、新闻、风险点。
-- [ ] 实现每日自动生成报告任务。
-- [ ] 将报告中的预测结论结构化入库。
-- [ ] 实现前一日报告自动评分逻辑。
-- [ ] 输出方向得分、区间得分、因子命中得分、风险得分。
-- [ ] 实现 `/reports/latest`、`/reports`、`/reports/:id`。
-- [ ] 实现 `/reports/accuracy/curve`。
+- [x] 定义 `analysis_reports`、`report_predictions`、`report_scores` 模型。
+- [x] 设计 AI 输入模板，包含价格、因子、新闻、风险点。
+- [x] 实现每日自动生成报告任务。
+- [x] 将报告中的预测结论结构化入库。
+- [x] 实现前一日报告自动评分逻辑。
+- [x] 输出方向得分、区间得分、因子命中得分、风险得分。
+- [x] 实现 `/reports/latest`、`/reports`、`/reports/:id`。
+- [x] 实现 `/reports/accuracy/curve`。
+
+本轮执行子任务：
+
+- [x] 新增报告仓储层，支持报告、预测、评分三类数据持久化。
+- [x] 启动时自动预热近 30 天日报与历史评分。
+- [x] 接通 `generate-report`、`score-report` 后台任务到真实服务。
+- [x] 将首页最新报告和准确率曲线从 mock 切换为 SQLite 真实回读。
+- [x] 补齐报告系统仓储测试和服务测试。
 
 ## 7. Phase 6: 定时任务与任务中心
 

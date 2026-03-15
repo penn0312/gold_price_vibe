@@ -166,6 +166,8 @@ gold_price/
 - 新闻抓取、分类映射、去重入库与 `/news` 查询接口
 - 因子定义初始化、历史快照预热与 `/factors` 真实读库接口
 - `update-factors` 因子更新任务与 SQLite 快照持久化
+- 报告生成、结构化预测、评分入库与 `/reports` 真实读库接口
+- `generate-report`、`score-report` 后台任务与历史准确率曲线持久化
 - 变更同步规范、版本日志与校验脚本
 
 ## 8. 已实现的首版代码能力
@@ -193,6 +195,10 @@ gold_price/
 - `/factors/latest`、`/factors/history`、`/factors/definitions` 已切到 SQLite 真实回读
 - `update-factors` 会结合最新价格、新闻热度与规则引擎生成最新因子快照
 - 因子评分统一输出 `score`、`impact_direction`、`impact_strength`、`confidence`
+- 报告系统会自动预热近 30 天日报、结构化预测与历史评分
+- `/reports/latest`、`/reports`、`/reports/:id`、`/reports/accuracy/curve` 已切到 SQLite 真实回读
+- `generate-report` 支持指定 `report_date` 生成日报，`score-report` 支持指定日期重算评分
+- 当前日报与评分为本地规则引擎版本，后续可平滑替换为真实 AI 模型
 
 ### 前端
 
@@ -246,8 +252,8 @@ npm run dev
 
 建议下一阶段按以下顺序继续：
 
-1. 进入 Phase 5，落地 `analysis_reports`、`report_predictions`、`report_scores`
-2. 将新闻摘要与情绪标签从规则版升级为 AI 版
+1. 进入 Phase 6，补齐新闻、因子、报告、评分的定时调度链路
+2. 将日报生成器和新闻摘要从规则版升级为 AI 版
 3. 对接真实宏观因子源，替换当前本地规则因子引擎
-4. 对接 AI 日报生成与次日自动评分任务
-5. 增加鉴权、调度、错误态和部署脚本
+4. 补齐前端加载态、空态、错误态和报告页详情交互
+5. 增加鉴权、告警和部署脚本

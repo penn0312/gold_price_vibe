@@ -128,6 +128,46 @@ type AnalysisReportRecord struct {
 	UpdatedAt         time.Time
 }
 
+func (AnalysisReportRecord) TableName() string {
+	return "analysis_reports"
+}
+
+type ReportPredictionRecord struct {
+	ID                 uint   `gorm:"primaryKey"`
+	ReportID           uint   `gorm:"index"`
+	TargetDate         string `gorm:"size:16;index"`
+	PredictedDirection string `gorm:"size:16"`
+	PredictedLow       float64
+	PredictedHigh      float64
+	PredictedClose     float64
+	FactorFocusJSON    string
+	CreatedAt          time.Time
+}
+
+func (ReportPredictionRecord) TableName() string {
+	return "report_predictions"
+}
+
+type ReportScoreRecord struct {
+	ID               uint   `gorm:"primaryKey"`
+	ReportID         uint   `gorm:"uniqueIndex"`
+	ScoredDate       string `gorm:"size:16;index"`
+	DirectionScore   float64
+	RangeScore       float64
+	FactorHitScore   float64
+	RiskScore        float64
+	TotalScore       float64
+	ActualClose      float64
+	ActualHigh       float64
+	ActualLow        float64
+	ScoreExplanation string
+	CreatedAt        time.Time
+}
+
+func (ReportScoreRecord) TableName() string {
+	return "report_scores"
+}
+
 type JobRunRecord struct {
 	ID          uint   `gorm:"primaryKey"`
 	JobName     string `gorm:"size:64;index"`
@@ -155,6 +195,8 @@ func OpenDatabase(path string) (*gorm.DB, error) {
 		&FactorSnapshotRecord{},
 		&NewsArticleRecord{},
 		&AnalysisReportRecord{},
+		&ReportPredictionRecord{},
+		&ReportScoreRecord{},
 		&JobRunRecord{},
 	); err != nil {
 		return nil, err

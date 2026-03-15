@@ -155,3 +155,13 @@
 | `FACTOR-003` | 因子更新 | 手动触发最新快照生成 | 服务已启动 | 调用 `POST /admin/jobs/update-factors` | 新增 10 条 `factor_snapshots` 与一条 `job_runs` |
 | `FACTOR-004` | 因子面板 | 首页真实读库 | 数据库已有因子快照 | 调用 `/factors/latest` | 返回 10 个因子的最新数据库值，而非 mock 数据 |
 | `FACTOR-005` | 因子规则 | 地缘新闻推升避险因子 | 存在地缘正向新闻 | 执行因子更新 | `geopolitics` 与 `safe_haven_sentiment` 分值上升且为正 |
+
+## 14. 本轮报告与评分系统补充测试
+
+| 用例 ID | 模块 | 场景 | 前置条件 | 操作 | 预期结果 |
+| --- | --- | --- | --- | --- | --- |
+| `REPORT-001` | 报告生成 | 手动生成指定日期日报 | 服务已启动 | 调用 `POST /admin/jobs/generate-report` 并传 `report_date` | 新增 `analysis_reports` 和 `report_predictions` |
+| `REPORT-002` | 报告生成 | 启动自动预热历史日报 | 空数据库启动服务 | 启动后调用 `/reports` | 返回近 30 天分页列表 |
+| `REPORT-003` | 报告详情 | 查看结构化预测与评分 | 报告已生成并评分 | 调用 `/reports/:id` | 返回 `predictions` 和 `score` 详情 |
+| `REPORT-004` | 报告评分 | 手动评分指定日报 | 已存在指定日报 | 调用 `POST /admin/jobs/score-report` 并传 `report_date` | 新增或覆盖 `report_scores` |
+| `REPORT-005` | 准确率曲线 | 历史评分真实读库 | 数据库已有历史评分 | 调用 `/reports/accuracy/curve?range=30d` | 返回数据库中的评分曲线和均分 |

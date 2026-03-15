@@ -98,6 +98,13 @@ type FactorHistory struct {
 	Items []FactorPoint `json:"items"`
 }
 
+type ReportQuery struct {
+	Page      int
+	PageSize  int
+	StartDate string
+	EndDate   string
+}
+
 type ReportSummary struct {
 	ID            int64    `json:"id"`
 	ReportDate    string   `json:"report_date"`
@@ -111,9 +118,43 @@ type ReportSummary struct {
 	GeneratedAt   string   `json:"generated_at"`
 }
 
+type ReportPrediction struct {
+	TargetDate         string   `json:"target_date"`
+	PredictedDirection string   `json:"predicted_direction"`
+	PredictedLow       float64  `json:"predicted_low"`
+	PredictedHigh      float64  `json:"predicted_high"`
+	PredictedClose     float64  `json:"predicted_close"`
+	FactorFocus        []string `json:"factor_focus"`
+}
+
+type ReportScoreDetail struct {
+	ScoredDate       string  `json:"scored_date"`
+	DirectionScore   float64 `json:"direction_score"`
+	RangeScore       float64 `json:"range_score"`
+	FactorHitScore   float64 `json:"factor_hit_score"`
+	RiskScore        float64 `json:"risk_score"`
+	TotalScore       float64 `json:"total_score"`
+	ActualClose      float64 `json:"actual_close"`
+	ActualHigh       float64 `json:"actual_high"`
+	ActualLow        float64 `json:"actual_low"`
+	ScoreExplanation string  `json:"score_explanation"`
+}
+
 type ReportDetail struct {
 	ReportSummary
-	FullContent string `json:"full_content"`
+	FullContent   string             `json:"full_content"`
+	AIProvider    string             `json:"ai_provider"`
+	ModelName     string             `json:"model_name"`
+	PromptVersion string             `json:"prompt_version"`
+	Predictions   []ReportPrediction `json:"predictions"`
+	Score         *ReportScoreDetail `json:"score,omitempty"`
+}
+
+type ReportList struct {
+	Items    []ReportSummary `json:"items"`
+	Page     int             `json:"page"`
+	PageSize int             `json:"page_size"`
+	Total    int64           `json:"total"`
 }
 
 type AccuracyItem struct {

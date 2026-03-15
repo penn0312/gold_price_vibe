@@ -1,8 +1,10 @@
 package api
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -193,7 +195,13 @@ func (h Handler) GetLatestReport(c *gin.Context) {
 }
 
 func (h Handler) GetReports(c *gin.Context) {
-	success(c, h.service.GetReports())
+	query := model.ReportQuery{
+		Page:      parseQueryInt(c.Query("page"), 1),
+		PageSize:  parseQueryInt(c.Query("page_size"), 10),
+		StartDate: c.Query("start_date"),
+		EndDate:   c.Query("end_date"),
+	}
+	success(c, h.service.ListReports(query))
 }
 
 func (h Handler) GetReportDetail(c *gin.Context) {
@@ -235,11 +243,21 @@ func (h Handler) TriggerUpdateFactors(c *gin.Context) {
 }
 
 func (h Handler) TriggerGenerateReport(c *gin.Context) {
-	success(c, h.service.TriggerJob("generate-report"))
+	reportDate, err := parseReportDateRequest(c)
+	if err != nil {
+		errorResponse(c, http.StatusBadRequest, 4001, err.Error())
+		return
+	}
+	success(c, h.service.GenerateReport(reportDate))
 }
 
 func (h Handler) TriggerScoreReport(c *gin.Context) {
-	success(c, h.service.TriggerJob("score-report"))
+	reportDate, err := parseReportDateRequest(c)
+	if err != nil {
+		errorResponse(c, http.StatusBadRequest, 4001, err.Error())
+		return
+	}
+	success(c, h.service.ScoreReport(reportDate))
 }
 
 func (h Handler) GetJobRuns(c *gin.Context) {
@@ -281,6 +299,28 @@ func parseQueryInt(value string, fallback int) int {
 		return fallback
 	}
 	return parsed
+}
+
+type reportDateRequest struct {
+	ReportDate string `json:"report_date"`
+}
+
+func parseReportDateRequest(c *gin.Context) (string, error) {
+	if c.Request.Body == nil || c.Request.ContentLength == 0 {
+		return "", nil
+	}
+
+	var payload reportDateRequest
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		return "", errors.New("invalid request body")
+	}
+	if payload.ReportDate == "" {
+		return "", nil
+	}
+	if _, err := time.Parse("2006-01-02", strings.TrimSpace(payload.ReportDate)); err != nil {
+		return "", errors.New("invalid report_date")
+	}
+	return strings.TrimSpace(payload.ReportDate), nil
 }
 
 func corsMiddleware() gin.HandlerFunc {

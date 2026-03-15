@@ -133,12 +133,14 @@ paths:
   /reports/latest:
     get:
       summary: Get latest AI report
+      description: Returns the latest persisted daily analysis report summary.
       responses:
         "200":
           description: OK
   /reports:
     get:
       summary: Get report list
+      description: Returns paginated persisted analysis reports.
       parameters:
         - in: query
           name: page
@@ -164,6 +166,7 @@ paths:
   /reports/{id}:
     get:
       summary: Get report detail
+      description: Returns full report content, structured predictions and score detail.
       parameters:
         - in: path
           name: id
@@ -176,6 +179,7 @@ paths:
   /reports/accuracy/curve:
     get:
       summary: Get report accuracy curve
+      description: Returns persisted historical score curve for the selected window.
       parameters:
         - in: query
           name: range
@@ -209,8 +213,9 @@ paths:
   /admin/jobs/generate-report:
     post:
       summary: Trigger report generation
+      description: Generates a persisted daily report. `report_date` is optional and defaults to today.
       requestBody:
-        required: true
+        required: false
         content:
           application/json:
             schema:
@@ -225,8 +230,9 @@ paths:
   /admin/jobs/score-report:
     post:
       summary: Trigger report scoring
+      description: Scores a persisted daily report. `report_date` is optional and defaults to yesterday.
       requestBody:
-        required: true
+        required: false
         content:
           application/json:
             schema:

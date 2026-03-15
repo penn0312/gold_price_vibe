@@ -31,6 +31,9 @@ All notable changes to this project should be documented in this file.
 - 新增因子仓储层、因子快照模型和 10 个核心因子元数据初始化。
 - 新增因子历史预热、最新快照更新任务和 `/api/v1/factors/*` 真实读库接口。
 - 新增因子系统仓储测试、服务测试和地缘事件驱动评分测试。
+- 新增报告仓储层、结构化预测模型、评分模型和 `/api/v1/reports/*` 真实读库接口。
+- 新增规则化日报生成、次日评分任务、历史准确率曲线持久化与请求日期支持。
+- 新增报告系统仓储测试、服务测试和分页/详情/评分回读能力。
 
 ### Docs
 
@@ -41,6 +44,8 @@ All notable changes to this project should be documented in this file.
 - 补充了新闻分页、详情、字段说明与 Phase 3 当前实现边界。
 - 补充了因子定义、快照表结构和 Phase 4 当前实现约束。
 - 补充了因子接口字段说明、历史示例和 `update-factors` 当前行为。
+- 补充了报告、预测、评分表的 Phase 5 当前实现约束。
+- 补充了报告列表、详情、评分与后台任务的字段说明和响应示例。
 
 ### Tests
 
@@ -50,3 +55,4 @@ All notable changes to this project should be documented in this file.
 - 新增主备切换、单位换算、异常过滤和历史预热清洗测试项。
 - 新增新闻抓取、去重、筛选和详情测试项。
 - 新增因子预热、历史查询、手动更新和规则引擎联动测试项。
+- 新增报告生成、历史预热、详情评分和准确率曲线测试项。

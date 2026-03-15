@@ -396,6 +396,27 @@ Base URL:
 - Method: `GET`
 - Path: `/reports/latest`
 
+当前行为：
+
+- 优先读取 SQLite 中最新一份日报。
+- 若报告为空，系统会自动预热近 30 天规则化报告。
+- `accuracy_score` 在报告尚未被评分时返回 `0`。
+
+字段说明：
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `id` | int | 报告 ID |
+| `report_date` | string | 报告日期 |
+| `title` | string | 报告标题 |
+| `trend` | string | `bullish/bearish/range/volatile` |
+| `confidence` | number | 置信度 |
+| `summary` | string | 摘要 |
+| `key_drivers` | string[] | 核心驱动因子 |
+| `risk_points` | string[] | 风险提示 |
+| `accuracy_score` | number | 准确率评分 |
+| `generated_at` | string | 生成时间 |
+
 ### 6.2 获取报告列表
 
 - Method: `GET`
@@ -410,10 +431,95 @@ Base URL:
 | `start_date` | string | 否 | 起始日期 |
 | `end_date` | string | 否 | 结束日期 |
 
+当前行为：
+
+- 返回分页结构：`items`、`page`、`page_size`、`total`。
+- 当前报告由本地规则引擎生成，但已完整持久化到 SQLite。
+
+响应示例：
+
+```json
+{
+  "code": 0,
+  "message": "ok",
+  "data": {
+    "items": [
+      {
+        "id": 30,
+        "report_date": "2026-03-15",
+        "title": "黄金短线偏强，重点关注避险情绪与地缘政治",
+        "trend": "bullish",
+        "confidence": 82.6,
+        "summary": "避险情绪与地缘政治对金价形成主要支撑，短线偏多判断有效，但仍需防范美元指数。",
+        "key_drivers": ["避险情绪", "地缘政治", "央行购金"],
+        "risk_points": ["美元指数", "美联储利率"],
+        "accuracy_score": 0,
+        "generated_at": "2026-03-15T22:30:00+08:00"
+      }
+    ],
+    "page": 1,
+    "page_size": 10,
+    "total": 30
+  }
+}
+```
+
 ### 6.3 获取报告详情
 
 - Method: `GET`
 - Path: `/reports/:id`
+
+当前行为：
+
+- 返回完整正文、结构化预测与评分详情。
+- `score` 在未评分时可能为空。
+
+响应示例：
+
+```json
+{
+  "code": 0,
+  "message": "ok",
+  "data": {
+    "id": 30,
+    "report_date": "2026-03-15",
+    "title": "黄金短线偏强，重点关注避险情绪与地缘政治",
+    "trend": "bullish",
+    "confidence": 82.6,
+    "summary": "避险情绪与地缘政治对金价形成主要支撑，短线偏多判断有效，但仍需防范美元指数。",
+    "key_drivers": ["避险情绪", "地缘政治", "央行购金"],
+    "risk_points": ["美元指数", "美联储利率"],
+    "accuracy_score": 78.5,
+    "generated_at": "2026-03-15T22:30:00+08:00",
+    "full_content": "一、时间窗口：报告日期 2026-03-15...",
+    "ai_provider": "rule-engine",
+    "model_name": "local-phase5-v1",
+    "prompt_version": "phase5-rule-v1",
+    "predictions": [
+      {
+        "target_date": "2026-03-16",
+        "predicted_direction": "up",
+        "predicted_low": 561.23,
+        "predicted_high": 566.42,
+        "predicted_close": 563.98,
+        "factor_focus": ["避险情绪", "地缘政治", "央行购金"]
+      }
+    ],
+    "score": {
+      "scored_date": "2026-03-16",
+      "direction_score": 35,
+      "range_score": 26,
+      "factor_hit_score": 12,
+      "risk_score": 5,
+      "total_score": 78,
+      "actual_close": 563.51,
+      "actual_high": 565.11,
+      "actual_low": 560.94,
+      "score_explanation": "方向得分 35..."
+    }
+  }
+}
+```
 
 ### 6.4 获取准确率曲线
 
@@ -492,6 +598,12 @@ Base URL:
 }
 ```
 
+当前行为：
+
+- `report_date` 可选，不传时默认生成当天日报。
+- 会写入 `analysis_reports`、`report_predictions`、`job_runs`。
+- 当前生成器为本地规则引擎版本，后续可替换为真实 AI 生成。
+
 ### 7.5 手动执行评分
 
 - Method: `POST`
@@ -504,6 +616,11 @@ Base URL:
   "report_date": "2026-03-14"
 }
 ```
+
+当前行为：
+
+- `report_date` 可选，不传时默认评分前一日报告。
+- 会写入或覆盖 `report_scores`，并记录 `job_runs`。
 
 ### 7.6 获取任务执行记录
 
