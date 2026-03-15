@@ -26,13 +26,13 @@
 
 - [x] 定义 `data_sources`、`gold_price_ticks`、`gold_price_candles` 模型。
 - [x] 实现黄金价格采集适配器接口。
-- [ ] 实现主源 / 备用源切换。
-- [ ] 实现价格清洗、异常值过滤、单位统一为 `CNY/g`。
+- [x] 实现主源 / 备用源切换。
+- [x] 实现价格清洗、异常值过滤、单位统一为 `CNY/g`。
 - [x] 实现 tick 入库。
 - [x] 实现分钟级 K 线聚合任务。
 - [x] 实现 `/prices/realtime`。
 - [x] 实现 `/prices/history`。
-- [ ] 实现 `/prices/stream` SSE。
+- [x] 实现 `/prices/stream` SSE。
 
 ## 4. Phase 3: 新闻与事件系统
 

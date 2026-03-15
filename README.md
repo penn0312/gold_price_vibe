@@ -160,6 +160,9 @@ gold_price/
 - `Vue3 + Vite + ECharts` 前端首页骨架
 - mock 数据驱动的价格、因子、新闻、报告、准确率 API
 - 实时金价写库、K 线聚合、自动采集定时任务
+- 价格主源失败自动切换备用源
+- 价格采集标准化、异常值过滤与 `CNY/g` 单位统一
+- `/prices/stream` SSE 持续推送
 - 变更同步规范、版本日志与校验脚本
 
 ## 8. 已实现的首版代码能力
@@ -170,9 +173,13 @@ gold_price/
 - 初始化 SQLite 与 GORM AutoMigrate
 - 提供首页、价格、新闻、因子、报告、评分曲线、后台任务接口骨架
 - 金价采集器支持 `mock` / `remote` 两种模式
+- `remote` 模式下主源失败会自动回退到 `mock` 备用源
 - 实时金价会写入 SQLite
+- 采集结果统一标准化为 `CNY/g`
+- 异常跳变与过期时间戳会在入库前拦截
 - 自动聚合 `1m / 5m / 15m / 1h / 1d` K 线
 - 启动后自动预热 1 日历史价格并定时采集
+- 提供 `SSE` 实时价格流接口
 
 ### 前端
 
@@ -215,6 +222,7 @@ npm run dev
 - `GOLD_SOURCE_MODE`
 - `GOLD_API_URL`
 - `GOLD_API_KEY`
+- `USD_CNY_RATE`
 - `PRICE_COLLECT_INTERVAL_SEC`
 - `VITE_API_BASE`
 

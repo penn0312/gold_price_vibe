@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -85,12 +86,55 @@ func (h Handler) GetPriceHistory(c *gin.Context) {
 }
 
 func (h Handler) GetPriceStream(c *gin.Context) {
+	flusher, ok := c.Writer.(http.Flusher)
+	if !ok {
+		errorResponse(c, http.StatusInternalServerError, 5001, "streaming is not supported")
+		return
+	}
+
 	c.Header("Content-Type", "text/event-stream")
 	c.Header("Cache-Control", "no-cache")
 	c.Header("Connection", "keep-alive")
+	c.Header("X-Accel-Buffering", "no")
 
-	price := h.service.GetRealtimePrice()
-	c.SSEvent("price_tick", price)
+	lastCapturedAt := ""
+	sendPrice := func() {
+		price := h.service.GetRealtimePrice()
+		if price.CapturedAt == "" || price.CapturedAt == lastCapturedAt {
+			return
+		}
+
+		lastCapturedAt = price.CapturedAt
+		c.SSEvent("price_tick", price)
+		flusher.Flush()
+	}
+
+	c.SSEvent("price_status", gin.H{
+		"status":      "connected",
+		"server_time": nowRFC3339(),
+	})
+	flusher.Flush()
+	sendPrice()
+
+	priceTicker := time.NewTicker(3 * time.Second)
+	statusTicker := time.NewTicker(15 * time.Second)
+	defer priceTicker.Stop()
+	defer statusTicker.Stop()
+
+	for {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		case <-priceTicker.C:
+			sendPrice()
+		case <-statusTicker.C:
+			c.SSEvent("price_status", gin.H{
+				"status":      "alive",
+				"server_time": nowRFC3339(),
+			})
+			flusher.Flush()
+		}
+	}
 }
 
 func (h Handler) GetNews(c *gin.Context) {

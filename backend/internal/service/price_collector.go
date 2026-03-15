@@ -4,11 +4,19 @@ import (
 	"context"
 	"errors"
 	"math"
+	"sort"
 	"time"
 
 	"gold_price/backend/internal/model"
 	"gold_price/backend/internal/repository"
 	"gold_price/backend/internal/source"
+	"gorm.io/gorm"
+)
+
+const (
+	maxRealtimeJumpPercent = 8.0
+	maxHistoryJumpPercent  = 12.0
+	maxFutureSkew          = 2 * time.Minute
 )
 
 type PriceCollector struct {
@@ -29,12 +37,16 @@ func (c *PriceCollector) BootstrapHistory(ctx context.Context) error {
 		return nil
 	}
 
-	sourceRecord, err := c.repo.EnsureSource(c.provider.Metadata())
+	quotes, err := c.provider.HistoricalTicks(ctx, 1440, time.Minute)
 	if err != nil {
 		return err
 	}
+	quotes = sanitizeHistoryQuotes(quotes)
+	if len(quotes) == 0 {
+		return errors.New("no valid bootstrap quotes")
+	}
 
-	quotes, err := c.provider.HistoricalTicks(ctx, 1440, time.Minute)
+	sourceRecord, err := c.repo.EnsureSource(c.provider.Metadata())
 	if err != nil {
 		return err
 	}
@@ -48,12 +60,16 @@ func (c *PriceCollector) BootstrapHistory(ctx context.Context) error {
 
 func (c *PriceCollector) CollectNow(ctx context.Context) (model.JobRun, error) {
 	startedAt := time.Now()
-	sourceRecord, err := c.repo.EnsureSource(c.provider.Metadata())
+	quote, err := c.provider.CurrentPrice(ctx)
+	if err != nil {
+		return c.failJob(startedAt, err)
+	}
+	quote, err = c.validateRealtimeQuote(quote)
 	if err != nil {
 		return c.failJob(startedAt, err)
 	}
 
-	quote, err := c.provider.CurrentPrice(ctx)
+	sourceRecord, err := c.repo.EnsureSource(c.provider.Metadata())
 	if err != nil {
 		return c.failJob(startedAt, err)
 	}
@@ -190,6 +206,34 @@ func buildCandle(interval string, windowStart time.Time, duration time.Duration,
 	}
 }
 
+func (c *PriceCollector) validateRealtimeQuote(quote source.PriceQuote) (source.PriceQuote, error) {
+	if quote.Price <= 0 {
+		return source.PriceQuote{}, errors.New("price must be positive")
+	}
+	if quote.CapturedAt.After(time.Now().Add(maxFutureSkew)) {
+		return source.PriceQuote{}, errors.New("quote captured_at is too far in the future")
+	}
+
+	latest, err := c.repo.GetLatestTick()
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return source.PriceQuote{}, err
+	}
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return quote, nil
+	}
+	if !quote.CapturedAt.After(latest.CapturedAt) {
+		return source.PriceQuote{}, errors.New("stale quote ignored")
+	}
+	if latest.Price > 0 {
+		jump := math.Abs(quote.Price-latest.Price) / latest.Price * 100
+		if jump > maxRealtimeJumpPercent {
+			return source.PriceQuote{}, errors.New("quote filtered as abnormal jump")
+		}
+	}
+
+	return quote, nil
+}
+
 func (c *PriceCollector) failJob(startedAt time.Time, err error) (model.JobRun, error) {
 	finishedAt := time.Now()
 	run := model.JobRun{
@@ -220,4 +264,39 @@ func (c *PriceCollector) failJob(startedAt time.Time, err error) (model.JobRun, 
 
 func roundPrice(value float64) float64 {
 	return math.Round(value*1000) / 1000
+}
+
+func sanitizeHistoryQuotes(quotes []source.PriceQuote) []source.PriceQuote {
+	if len(quotes) == 0 {
+		return nil
+	}
+
+	items := append([]source.PriceQuote(nil), quotes...)
+	sort.Slice(items, func(i, j int) bool {
+		return items[i].CapturedAt.Before(items[j].CapturedAt)
+	})
+
+	sanitized := make([]source.PriceQuote, 0, len(items))
+	var lastAccepted *source.PriceQuote
+	for _, quote := range items {
+		if quote.Price <= 0 || quote.CapturedAt.IsZero() {
+			continue
+		}
+		if lastAccepted != nil {
+			if !quote.CapturedAt.After(lastAccepted.CapturedAt) {
+				continue
+			}
+			if lastAccepted.Price > 0 {
+				jump := math.Abs(quote.Price-lastAccepted.Price) / lastAccepted.Price * 100
+				if jump > maxHistoryJumpPercent {
+					continue
+				}
+			}
+		}
+
+		sanitized = append(sanitized, quote)
+		lastAccepted = &sanitized[len(sanitized)-1]
+	}
+
+	return sanitized
 }

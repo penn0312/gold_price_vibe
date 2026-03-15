@@ -23,13 +23,17 @@ func (r *PriceRepository) EnsureSource(meta source.SourceMeta) (model.DataSource
 	record := model.DataSource{}
 	err := r.db.Where("code = ?", meta.Code).First(&record).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
+		priority := meta.Priority
+		if priority == 0 {
+			priority = 1
+		}
 		record = model.DataSource{
 			Code:      meta.Code,
 			Name:      meta.Name,
 			Category:  meta.Category,
 			BaseURL:   meta.BaseURL,
 			IsEnabled: true,
-			Priority:  1,
+			Priority:  priority,
 		}
 		return record, r.db.Create(&record).Error
 	}
@@ -41,6 +45,9 @@ func (r *PriceRepository) EnsureSource(meta source.SourceMeta) (model.DataSource
 	record.Category = meta.Category
 	record.BaseURL = meta.BaseURL
 	record.IsEnabled = true
+	if meta.Priority > 0 {
+		record.Priority = meta.Priority
+	}
 	return record, r.db.Save(&record).Error
 }
 

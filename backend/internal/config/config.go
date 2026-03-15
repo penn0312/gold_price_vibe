@@ -11,6 +11,7 @@ type Config struct {
 	GoldSourceMode          string
 	GoldAPIURL              string
 	GoldAPIKey              string
+	USDToCNYRate            float64
 	PriceCollectIntervalSec int
 }
 
@@ -21,6 +22,7 @@ func Load() Config {
 		GoldSourceMode:          getEnv("GOLD_SOURCE_MODE", "mock"),
 		GoldAPIURL:              getEnv("GOLD_API_URL", ""),
 		GoldAPIKey:              getEnv("GOLD_API_KEY", ""),
+		USDToCNYRate:            getEnvAsFloat("USD_CNY_RATE", 7.2),
 		PriceCollectIntervalSec: getEnvAsInt("PRICE_COLLECT_INTERVAL_SEC", 30),
 	}
 }
@@ -36,6 +38,16 @@ func getEnv(key, fallback string) string {
 func getEnvAsInt(key string, fallback int) int {
 	if value := os.Getenv(key); value != "" {
 		if parsed, err := strconv.Atoi(value); err == nil {
+			return parsed
+		}
+	}
+
+	return fallback
+}
+
+func getEnvAsFloat(key string, fallback float64) float64 {
+	if value := os.Getenv(key); value != "" {
+		if parsed, err := strconv.ParseFloat(value, 64); err == nil {
 			return parsed
 		}
 	}

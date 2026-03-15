@@ -41,6 +41,11 @@
 | `created_at` | DATETIME | 创建时间 |
 | `updated_at` | DATETIME | 更新时间 |
 
+说明：
+
+- 价格采集场景下，`priority` 用于表达主备顺序，数值越小优先级越高。
+- Phase 2 收口版当前默认 `remote=1`，`mock=9`。
+
 ### 3.2 `gold_price_ticks`
 
 存储最细粒度实时价格。
@@ -57,6 +62,12 @@
 | `unit` | TEXT | 固定 `g` |
 | `captured_at` | DATETIME INDEX | 抓取时间 |
 | `created_at` | DATETIME | 入库时间 |
+
+说明：
+
+- `price`、`currency`、`unit` 在入库前统一标准化为 `CNY/g`。
+- `change_amount` 与 `change_rate` 基于上一条有效 tick 计算。
+- 非正价格、明显异常跳变、过期时间戳会在入库前过滤。
 
 索引建议：
 
@@ -80,6 +91,11 @@
 | `window_start` | DATETIME INDEX | 周期起始 |
 | `window_end` | DATETIME | 周期结束 |
 | `created_at` | DATETIME | 创建时间 |
+
+说明：
+
+- K 线只基于通过清洗过滤后的有效 tick 聚合。
+- `sample_count` 表示当前窗口实际参与聚合的有效采样数。
 
 唯一约束建议：
 

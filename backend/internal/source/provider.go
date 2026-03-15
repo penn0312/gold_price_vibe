@@ -4,9 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math"
 	"math/rand"
 	"net/http"
+	"strings"
+	"sync/atomic"
 	"time"
 
 	"gold_price/backend/internal/config"
@@ -16,6 +19,7 @@ const (
 	DefaultSymbol   = "AU_CNY_G"
 	DefaultCurrency = "CNY"
 	DefaultUnit     = "g"
+	gramsPerTroyOz  = 31.1034768
 )
 
 type SourceMeta struct {
@@ -23,6 +27,7 @@ type SourceMeta struct {
 	Name     string
 	BaseURL  string
 	Category string
+	Priority int
 }
 
 type PriceQuote struct {
@@ -30,6 +35,7 @@ type PriceQuote struct {
 	Price      float64
 	Currency   string
 	Unit       string
+	FXRate     float64
 	CapturedAt time.Time
 }
 
@@ -40,15 +46,103 @@ type PriceProvider interface {
 }
 
 func NewPriceProvider(cfg config.Config) PriceProvider {
+	providers := make([]PriceProvider, 0, 2)
 	if cfg.GoldSourceMode == "remote" && cfg.GoldAPIURL != "" {
-		return &RemoteHTTPProvider{
-			client: &http.Client{Timeout: 8 * time.Second},
-			url:    cfg.GoldAPIURL,
-			apiKey: cfg.GoldAPIKey,
-		}
+		providers = append(providers, &RemoteHTTPProvider{
+			client:       &http.Client{Timeout: 8 * time.Second},
+			url:          cfg.GoldAPIURL,
+			apiKey:       cfg.GoldAPIKey,
+			usdToCNYRate: cfg.USDToCNYRate,
+		})
+		providers = append(providers, &MockPriceProvider{})
+	} else {
+		providers = append(providers, &MockPriceProvider{})
 	}
 
-	return &MockPriceProvider{}
+	return &SequentialPriceProvider{
+		providers:    providers,
+		usdToCNYRate: cfg.USDToCNYRate,
+	}
+}
+
+type SequentialPriceProvider struct {
+	providers    []PriceProvider
+	usdToCNYRate float64
+	activeIndex  atomic.Int64
+}
+
+func (p *SequentialPriceProvider) Metadata() SourceMeta {
+	if len(p.providers) == 0 {
+		return SourceMeta{}
+	}
+
+	index := int(p.activeIndex.Load())
+	if index < 0 || index >= len(p.providers) {
+		index = 0
+	}
+
+	return p.providers[index].Metadata()
+}
+
+func (p *SequentialPriceProvider) CurrentPrice(ctx context.Context) (PriceQuote, error) {
+	var errs []error
+	for index, provider := range p.providers {
+		quote, err := provider.CurrentPrice(ctx)
+		if err != nil {
+			errs = append(errs, providerErr(provider.Metadata(), err))
+			continue
+		}
+
+		normalized, err := normalizeQuote(quote, p.usdToCNYRate)
+		if err != nil {
+			errs = append(errs, providerErr(provider.Metadata(), err))
+			continue
+		}
+
+		p.activeIndex.Store(int64(index))
+		return normalized, nil
+	}
+
+	if len(errs) == 0 {
+		return PriceQuote{}, errors.New("no price provider configured")
+	}
+
+	return PriceQuote{}, errors.Join(errs...)
+}
+
+func (p *SequentialPriceProvider) HistoricalTicks(ctx context.Context, count int, step time.Duration) ([]PriceQuote, error) {
+	var errs []error
+	for index, provider := range p.providers {
+		quotes, err := provider.HistoricalTicks(ctx, count, step)
+		if err != nil {
+			errs = append(errs, providerErr(provider.Metadata(), err))
+			continue
+		}
+
+		normalized := make([]PriceQuote, 0, len(quotes))
+		failed := false
+		for _, quote := range quotes {
+			cleaned, cleanErr := normalizeQuote(quote, p.usdToCNYRate)
+			if cleanErr != nil {
+				errs = append(errs, providerErr(provider.Metadata(), cleanErr))
+				failed = true
+				break
+			}
+			normalized = append(normalized, cleaned)
+		}
+		if failed {
+			continue
+		}
+
+		p.activeIndex.Store(int64(index))
+		return normalized, nil
+	}
+
+	if len(errs) == 0 {
+		return nil, errors.New("no price provider configured")
+	}
+
+	return nil, errors.Join(errs...)
 }
 
 type MockPriceProvider struct{}
@@ -59,6 +153,7 @@ func (p *MockPriceProvider) Metadata() SourceMeta {
 		Name:     "Mock Gold Feed",
 		BaseURL:  "local://mock",
 		Category: "gold",
+		Priority: 9,
 	}
 }
 
@@ -99,9 +194,10 @@ func (p *MockPriceProvider) HistoricalTicks(_ context.Context, count int, step t
 }
 
 type RemoteHTTPProvider struct {
-	client *http.Client
-	url    string
-	apiKey string
+	client       *http.Client
+	url          string
+	apiKey       string
+	usdToCNYRate float64
 }
 
 type remotePriceResponse struct {
@@ -109,6 +205,7 @@ type remotePriceResponse struct {
 	Price      float64 `json:"price"`
 	Currency   string  `json:"currency"`
 	Unit       string  `json:"unit"`
+	FXRateCNY  float64 `json:"fx_rate_cny"`
 	CapturedAt string  `json:"captured_at"`
 }
 
@@ -118,6 +215,7 @@ func (p *RemoteHTTPProvider) Metadata() SourceMeta {
 		Name:     "Remote Gold Feed",
 		BaseURL:  p.url,
 		Category: "gold",
+		Priority: 1,
 	}
 }
 
@@ -167,6 +265,7 @@ func (p *RemoteHTTPProvider) CurrentPrice(ctx context.Context) (PriceQuote, erro
 		Price:      round(payload.Price),
 		Currency:   payload.Currency,
 		Unit:       payload.Unit,
+		FXRate:     firstPositive(payload.FXRateCNY, p.usdToCNYRate),
 		CapturedAt: capturedAt,
 	}, nil
 }
@@ -194,4 +293,89 @@ func (p *RemoteHTTPProvider) HistoricalTicks(ctx context.Context, count int, ste
 
 func round(value float64) float64 {
 	return math.Round(value*1000) / 1000
+}
+
+func normalizeQuote(quote PriceQuote, fallbackFXRate float64) (PriceQuote, error) {
+	if quote.CapturedAt.IsZero() {
+		quote.CapturedAt = time.Now()
+	}
+	if quote.Symbol == "" {
+		quote.Symbol = DefaultSymbol
+	}
+
+	currency := strings.ToUpper(strings.TrimSpace(quote.Currency))
+	unit := normalizeUnit(quote.Unit)
+	if currency == "" {
+		currency = DefaultCurrency
+	}
+	if unit == "" {
+		unit = DefaultUnit
+	}
+	if quote.Price <= 0 {
+		return PriceQuote{}, errors.New("price must be positive")
+	}
+
+	price := quote.Price
+	switch {
+	case currency == "CNY" && unit == "g":
+	case currency == "CNY" && unit == "kg":
+		price = price / 1000
+	case currency == "CNY" && unit == "oz":
+		price = price / gramsPerTroyOz
+	case currency == "USD" && unit == "g":
+		price = price * firstPositive(quote.FXRate, fallbackFXRate)
+	case currency == "USD" && unit == "kg":
+		price = price * firstPositive(quote.FXRate, fallbackFXRate) / 1000
+	case currency == "USD" && unit == "oz":
+		price = price * firstPositive(quote.FXRate, fallbackFXRate) / gramsPerTroyOz
+	default:
+		return PriceQuote{}, fmt.Errorf("unsupported currency/unit: %s/%s", currency, unit)
+	}
+
+	if currency == "USD" && firstPositive(quote.FXRate, fallbackFXRate) <= 0 {
+		return PriceQuote{}, errors.New("missing usd/cny fx rate")
+	}
+	if price < 50 || price > 10000 {
+		return PriceQuote{}, fmt.Errorf("price out of expected range: %.3f", price)
+	}
+
+	return PriceQuote{
+		Symbol:     quote.Symbol,
+		Price:      round(price),
+		Currency:   DefaultCurrency,
+		Unit:       DefaultUnit,
+		FXRate:     firstPositive(quote.FXRate, fallbackFXRate),
+		CapturedAt: quote.CapturedAt,
+	}, nil
+}
+
+func normalizeUnit(unit string) string {
+	switch strings.ToLower(strings.TrimSpace(unit)) {
+	case "", "g", "gram", "grams":
+		return "g"
+	case "kg", "kilogram", "kilograms":
+		return "kg"
+	case "oz", "ozt", "troy_oz", "troy-ounce", "troy ounce":
+		return "oz"
+	default:
+		return strings.ToLower(strings.TrimSpace(unit))
+	}
+}
+
+func firstPositive(values ...float64) float64 {
+	for _, value := range values {
+		if value > 0 {
+			return value
+		}
+	}
+
+	return 0
+}
+
+func providerErr(meta SourceMeta, err error) error {
+	if meta.Code == "" {
+		return err
+	}
+
+	return fmt.Errorf("%s: %w", meta.Code, err)
 }

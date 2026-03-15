@@ -21,12 +21,14 @@ paths:
   /prices/realtime:
     get:
       summary: Get realtime gold price
+      description: Returns the latest normalized gold price in CNY per gram.
       responses:
         "200":
           description: OK
   /prices/history:
     get:
       summary: Get historical gold price candles
+      description: Returns candles aggregated from normalized CNY/g ticks.
       parameters:
         - in: query
           name: range
@@ -43,6 +45,13 @@ paths:
       responses:
         "200":
           description: OK
+  /prices/stream:
+    get:
+      summary: Stream realtime gold price
+      description: SSE stream that emits `price_tick` and `price_status` events.
+      responses:
+        "200":
+          description: text/event-stream
   /news:
     get:
       summary: Get news list

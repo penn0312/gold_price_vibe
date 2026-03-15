@@ -80,6 +80,11 @@ Base URL:
 }
 ```
 
+说明：
+
+- 返回值已统一标准化为 `CNY/g`。
+- 数据优先读取 SQLite 内最新有效 tick。
+
 ### 3.2 获取价格历史走势
 
 - Method: `GET`
@@ -96,6 +101,7 @@ Base URL:
 
 - 当前 `1d` 周期优先读取数据库内的真实采集与聚合数据。
 - 若长周期历史数据尚未积累充分，服务会临时回退到样例数据，保证页面可展示。
+- 历史 K 线全部基于清洗后的标准化 tick 聚合。
 
 响应示例：
 
@@ -125,10 +131,39 @@ Base URL:
 - Path: `/prices/stream`
 - 协议：`SSE`
 
+连接行为：
+
+- 建立连接后立即返回一次 `price_status` 连接状态事件。
+- 最新价格发生变化时推送 `price_tick`。
+- 空闲期间推送 `price_status` 心跳事件。
+
 事件类型：
 
 - `price_tick`
 - `price_status`
+
+`price_tick` 示例：
+
+```json
+{
+  "symbol": "AU_CNY_G",
+  "price": 562.318,
+  "change_amount": 1.246,
+  "change_rate": 0.22,
+  "currency": "CNY",
+  "unit": "g",
+  "captured_at": "2026-03-15T20:59:40+08:00"
+}
+```
+
+`price_status` 示例：
+
+```json
+{
+  "status": "alive",
+  "server_time": "2026-03-15T21:00:00+08:00"
+}
+```
 
 ## 4. 新闻与事件接口
 
