@@ -23,7 +23,7 @@ paths:
   /prices/realtime:
     get:
       summary: Get realtime gold price
-      description: Returns the latest normalized gold price in CNY per gram.
+      description: Returns the latest normalized gold price in CNY per gram. The default real source is the official Shanghai Gold Exchange delayed quote page.
       responses:
         "200":
           description: OK
@@ -57,7 +57,7 @@ paths:
   /news:
     get:
       summary: Get news list
-      description: Returns paginated news articles with category, region and factor filters.
+      description: Returns paginated news articles with category, region and factor filters. The default real source is Google News RSS search feeds.
       parameters:
         - in: query
           name: page

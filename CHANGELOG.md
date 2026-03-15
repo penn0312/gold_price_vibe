@@ -38,6 +38,7 @@ All notable changes to this project should be documented in this file.
 - 新增 `/api/v1/admin/jobs/definitions` 任务中心接口。
 - 新增首页分区级 `loading/empty/error` 状态组件与局部重试交互。
 - 新增 API 集成测试、请求超时降级处理和 `v0.1.0` 发布说明文档。
+- 新增默认真实价格源 `SGE` 与默认真实新闻源 `Google News RSS` 接入。
 
 ### Docs
 
@@ -53,6 +54,7 @@ All notable changes to this project should be documented in this file.
 - 补充了任务定义表、任务运行扩展字段、自动调度和重试策略说明。
 - 补充了前端空态、错误态和局部重试的接口使用约定。
 - 补充了 `v0.1.0` 版本说明、联调结果与请求超时约定。
+- 补充了真实公开数据源、运行配置和回退策略说明。
 
 ### Tests
 
@@ -66,3 +68,4 @@ All notable changes to this project should be documented in this file.
 - 新增任务定义初始化和失败自动重试测试。
 - 新增首页分区降级、空态和首屏骨架测试项。
 - 新增 API 集成测试、本地联调烟测和请求超时测试项。
+- 新增官方行情页解析和 RSS 解析测试项。

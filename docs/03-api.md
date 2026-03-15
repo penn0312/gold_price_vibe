@@ -90,6 +90,7 @@ Base URL:
 
 - 返回值已统一标准化为 `CNY/g`。
 - 数据优先读取 SQLite 内最新有效 tick。
+- 当前默认采集主源为上海黄金交易所官方延时行情；若外部源不可用，会自动回退备用 mock 源。
 
 ### 3.2 获取价格历史走势
 
@@ -193,6 +194,7 @@ Base URL:
 
 - 返回分页结构：`items`、`page`、`page_size`、`total`。
 - `summary`、`sentiment`、`importance`、`impact_score` 当前为规则化生成结果。
+- 当前默认抓取主源为 Google News RSS 公开搜索结果；若外部源不可用，会自动回退备用 mock 源。
 
 响应示例：
 

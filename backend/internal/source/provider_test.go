@@ -94,3 +94,38 @@ func TestNormalizeQuoteConvertsCNYPerKgToPerGram(t *testing.T) {
 		t.Fatalf("expected 560 CNY/g, got %.3f", quote.Price)
 	}
 }
+
+func TestParseSGEDelayedPrice(t *testing.T) {
+	t.Parallel()
+
+	body := []byte(`
+		<table>
+			<tr>
+				<td>Au99.99</td>
+				<td>688.50</td>
+				<td>689.00</td>
+				<td>687.20</td>
+			</tr>
+		</table>
+	`)
+
+	price, err := parseSGEDelayedPrice(body)
+	if err != nil {
+		t.Fatalf("parse sge price: %v", err)
+	}
+	if price != 688.5 {
+		t.Fatalf("expected 688.500, got %.3f", price)
+	}
+}
+
+func TestSplitGoogleNewsTitle(t *testing.T) {
+	t.Parallel()
+
+	title, sourceName := splitGoogleNewsTitle("金价上涨，市场关注美联储路径 - 财经日报")
+	if title != "金价上涨，市场关注美联储路径" {
+		t.Fatalf("unexpected title %q", title)
+	}
+	if sourceName != "财经日报" {
+		t.Fatalf("unexpected source name %q", sourceName)
+	}
+}

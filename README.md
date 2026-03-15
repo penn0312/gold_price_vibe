@@ -171,6 +171,7 @@ gold_price/
 - `generate-report`、`score-report` 后台任务与历史准确率曲线持久化
 - 自动任务定义中心、统一调度、失败重试与告警钩子
 - API 集成测试、本地联调验证与 `v0.1.0` 发布说明
+- 默认切到真实公开价格源与真实新闻 RSS 源，失败自动回退 mock
 - 变更同步规范、版本日志与校验脚本
 
 ## 8. 已实现的首版代码能力
@@ -181,7 +182,9 @@ gold_price/
 - 初始化 SQLite 与 GORM AutoMigrate
 - 提供首页、价格、新闻、因子、报告、评分曲线、后台任务接口骨架
 - 金价采集器支持 `mock` / `remote` 两种模式
+- 金价采集器支持 `real(SGE)` / `remote` / `mock` 三种模式
 - `remote` 模式下主源失败会自动回退到 `mock` 备用源
+- `real` 模式下默认读取上海黄金交易所官方延时行情页，并保持 `CNY/g`
 - 实时金价会写入 SQLite
 - 采集结果统一标准化为 `CNY/g`
 - 异常跳变与过期时间戳会在入库前拦截
@@ -189,7 +192,9 @@ gold_price/
 - 启动后自动预热 1 日历史价格并定时采集
 - 提供 `SSE` 实时价格流接口
 - 新闻系统支持 `mock` / `remote` 两种抓取模式
+- 新闻系统支持 `real(Google News RSS)` / `remote` / `mock` 三种抓取模式
 - 启动时自动预热新闻数据，支持手动触发新闻抓取任务
+- `real` 模式下会抓取黄金、美元、美联储、通胀、地缘政治等真实公开新闻
 - 新闻支持分页、分类、地区、重要级别和关联因子筛选
 - 新闻标题和正文会生成哈希，避免重复入库
 - 当前摘要、情绪和影响因子为规则映射版，后续可升级为 AI 版
@@ -247,9 +252,14 @@ npm run dev
 - `APP_PORT`
 - `APP_DB_PATH`
 - `GOLD_SOURCE_MODE`
+- `SGE_QUOTE_URL`
 - `GOLD_API_URL`
 - `GOLD_API_KEY`
 - `NEWS_SOURCE_MODE`
+- `GOOGLE_NEWS_RSS_BASE_URL`
+- `GOOGLE_NEWS_HL`
+- `GOOGLE_NEWS_GL`
+- `GOOGLE_NEWS_CEID`
 - `NEWS_FEED_URL`
 - `NEWS_API_KEY`
 - `USD_CNY_RATE`
