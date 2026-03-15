@@ -1,0 +1,122 @@
+package model
+
+type APIResponse struct {
+	Code    int         `json:"code"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data"`
+}
+
+type RealtimePrice struct {
+	Symbol       string  `json:"symbol"`
+	Price        float64 `json:"price"`
+	ChangeAmount float64 `json:"change_amount"`
+	ChangeRate   float64 `json:"change_rate"`
+	Currency     string  `json:"currency"`
+	Unit         string  `json:"unit"`
+	CapturedAt   string  `json:"captured_at"`
+}
+
+type Candle struct {
+	Time  string  `json:"time"`
+	Open  float64 `json:"open"`
+	High  float64 `json:"high"`
+	Low   float64 `json:"low"`
+	Close float64 `json:"close"`
+}
+
+type PriceHistory struct {
+	Symbol   string   `json:"symbol"`
+	Interval string   `json:"interval"`
+	Items    []Candle `json:"items"`
+}
+
+type NewsArticle struct {
+	ID             int64    `json:"id"`
+	Title          string   `json:"title"`
+	Summary        string   `json:"summary"`
+	URL            string   `json:"url"`
+	Region         string   `json:"region"`
+	Category       string   `json:"category"`
+	Sentiment      string   `json:"sentiment"`
+	Importance     int      `json:"importance"`
+	ImpactScore    float64  `json:"impact_score"`
+	RelatedFactors []string `json:"related_factors"`
+	PublishedAt    string   `json:"published_at"`
+}
+
+type FactorPoint struct {
+	Time  string  `json:"time"`
+	Value float64 `json:"value"`
+	Score float64 `json:"score"`
+}
+
+type FactorLatest struct {
+	Code            string  `json:"code"`
+	Name            string  `json:"name"`
+	Value           float64 `json:"value"`
+	Unit            string  `json:"unit"`
+	Score           float64 `json:"score"`
+	ImpactDirection string  `json:"impact_direction"`
+	ImpactStrength  float64 `json:"impact_strength"`
+	Confidence      float64 `json:"confidence"`
+	CapturedAt      string  `json:"captured_at"`
+}
+
+type FactorDefinition struct {
+	Code        string `json:"code"`
+	Name        string `json:"name"`
+	Category    string `json:"category"`
+	Description string `json:"description"`
+	Unit        string `json:"unit"`
+}
+
+type FactorHistory struct {
+	Code  string        `json:"code"`
+	Range string        `json:"range"`
+	Items []FactorPoint `json:"items"`
+}
+
+type ReportSummary struct {
+	ID            int64    `json:"id"`
+	ReportDate    string   `json:"report_date"`
+	Title         string   `json:"title"`
+	Trend         string   `json:"trend"`
+	Confidence    float64  `json:"confidence"`
+	Summary       string   `json:"summary"`
+	KeyDrivers    []string `json:"key_drivers"`
+	RiskPoints    []string `json:"risk_points"`
+	AccuracyScore float64  `json:"accuracy_score"`
+	GeneratedAt   string   `json:"generated_at"`
+}
+
+type ReportDetail struct {
+	ReportSummary
+	FullContent string `json:"full_content"`
+}
+
+type AccuracyItem struct {
+	ReportDate string  `json:"report_date"`
+	Score      float64 `json:"score"`
+}
+
+type AccuracyCurve struct {
+	AvgScore float64        `json:"avg_score"`
+	Items    []AccuracyItem `json:"items"`
+}
+
+type DashboardOverview struct {
+	RealtimePrice RealtimePrice  `json:"realtime_price"`
+	LatestReport  ReportSummary  `json:"latest_report"`
+	Factors       []FactorLatest `json:"factors"`
+	Headlines     []NewsArticle  `json:"headlines"`
+}
+
+type JobRun struct {
+	ID         int64  `json:"id"`
+	JobName    string `json:"job_name"`
+	JobType    string `json:"job_type"`
+	Status     string `json:"status"`
+	StartedAt  string `json:"started_at"`
+	FinishedAt string `json:"finished_at"`
+	Message    string `json:"message"`
+}
