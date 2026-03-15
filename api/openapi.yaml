@@ -100,12 +100,14 @@ paths:
   /factors/latest:
     get:
       summary: Get latest factor panel
+      description: Returns the latest persisted snapshot for each built-in gold driver factor.
       responses:
         "200":
           description: OK
   /factors/history:
     get:
       summary: Get factor history
+      description: Returns historical factor snapshots in ascending time order.
       parameters:
         - in: query
           name: code
@@ -124,6 +126,7 @@ paths:
   /factors/definitions:
     get:
       summary: Get factor definitions
+      description: Returns the metadata for the 10 built-in gold factors.
       responses:
         "200":
           description: OK
@@ -199,6 +202,7 @@ paths:
   /admin/jobs/update-factors:
     post:
       summary: Trigger factor update
+      description: Builds the latest factor snapshots from persisted price, news and rule-based signals.
       responses:
         "200":
           description: OK

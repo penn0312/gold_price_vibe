@@ -145,3 +145,13 @@
 | `NEWS-003` | 新闻筛选 | 按分类筛选 | 已有多类别新闻 | 调用 `/news?category=geopolitics` | 仅返回指定类别 |
 | `NEWS-004` | 新闻筛选 | 按因子筛选 | 已有关联因子数据 | 调用 `/news?factor_code=usd_index` | 仅返回包含该因子的新闻 |
 | `NEWS-005` | 新闻详情 | 获取正文详情 | 已有新闻数据 | 调用 `/news/:id` | 返回 `content`、`summary`、`source_name` |
+
+## 13. 本轮因子系统补充测试
+
+| 用例 ID | 模块 | 场景 | 前置条件 | 操作 | 预期结果 |
+| --- | --- | --- | --- | --- | --- |
+| `FACTOR-001` | 因子预热 | 首次启动自动初始化 | 空数据库启动服务 | 启动后调用 `/factors/definitions` | 返回 10 个预置因子定义 |
+| `FACTOR-002` | 因子预热 | 自动生成历史快照 | 空数据库启动服务 | 启动后调用 `/factors/history?code=usd_index&range=90d` | 返回按时间升序的历史快照 |
+| `FACTOR-003` | 因子更新 | 手动触发最新快照生成 | 服务已启动 | 调用 `POST /admin/jobs/update-factors` | 新增 10 条 `factor_snapshots` 与一条 `job_runs` |
+| `FACTOR-004` | 因子面板 | 首页真实读库 | 数据库已有因子快照 | 调用 `/factors/latest` | 返回 10 个因子的最新数据库值，而非 mock 数据 |
+| `FACTOR-005` | 因子规则 | 地缘新闻推升避险因子 | 存在地缘正向新闻 | 执行因子更新 | `geopolitics` 与 `safe_haven_sentiment` 分值上升且为正 |

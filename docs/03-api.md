@@ -260,6 +260,26 @@ Base URL:
 - Method: `GET`
 - Path: `/factors/latest`
 
+当前行为：
+
+- 优先读取 SQLite 中每个因子的最新一条快照。
+- 若系统首次启动且无快照，会先完成因子定义初始化与历史快照预热。
+- 返回顺序按预置因子定义顺序输出，便于前端稳定渲染。
+
+字段说明：
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `code` | string | 因子编码 |
+| `name` | string | 因子中文名称 |
+| `value` | number | 最新数值 |
+| `unit` | string | 单位 |
+| `score` | number | 因子利多利空评分，范围 `-100 ~ 100` |
+| `impact_direction` | string | `bullish/bearish/neutral` |
+| `impact_strength` | number | 对黄金影响强度，范围 `0 ~ 100` |
+| `confidence` | number | 当前快照可信度，范围 `0 ~ 100` |
+| `captured_at` | string | 快照时间 |
+
 响应示例：
 
 ```json
@@ -294,10 +314,80 @@ Base URL:
 | `code` | string | 是 | 因子编码 |
 | `range` | string | 是 | `7d/30d/90d/1y` |
 
+当前行为：
+
+- 返回指定因子的历史快照时间序列。
+- 当前 Phase 4 以日级快照为主，前端可直接绘制趋势线与评分线。
+- 结果按时间升序输出。
+
+响应示例：
+
+```json
+{
+  "code": 0,
+  "message": "ok",
+  "data": {
+    "code": "usd_index",
+    "range": "30d",
+    "items": [
+      {
+        "time": "2026-02-15T00:00:00+08:00",
+        "value": 103.26,
+        "score": -58.2
+      },
+      {
+        "time": "2026-02-16T00:00:00+08:00",
+        "value": 103.41,
+        "score": -60.4
+      }
+    ]
+  }
+}
+```
+
 ### 5.3 获取因子定义列表
 
 - Method: `GET`
 - Path: `/factors/definitions`
+
+当前行为：
+
+- 返回 10 个核心因子的定义元数据。
+- 当前接口用于前端卡片标题、分类筛选、因子详情页说明和后续 AI 提示词拼装。
+
+字段说明：
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `code` | string | 因子编码 |
+| `name` | string | 因子名称 |
+| `category` | string | `macro/market/event/demand` |
+| `description` | string | 因子说明 |
+| `unit` | string | 单位 |
+| `value_type` | string | `number/percent/score/text` |
+| `default_weight` | number | 默认权重 |
+| `impact_direction_rule` | string | 方向判定规则说明 |
+
+响应示例：
+
+```json
+{
+  "code": 0,
+  "message": "ok",
+  "data": [
+    {
+      "code": "usd_index",
+      "name": "美元指数",
+      "category": "macro",
+      "description": "美元走强通常压制黄金表现。",
+      "unit": "",
+      "value_type": "number",
+      "default_weight": 0.96,
+      "impact_direction_rule": "value 上行通常利空黄金"
+    }
+  ]
+}
+```
 
 ## 6. AI 报告接口
 
@@ -381,6 +471,13 @@ Base URL:
 
 - Method: `POST`
 - Path: `/admin/jobs/update-factors`
+
+当前行为：
+
+- 确保 `factor_definitions` 已初始化。
+- 聚合最新价格、最近新闻热度和内置规则引擎，生成 10 个核心因子的最新快照。
+- 写入 `factor_snapshots` 与 `job_runs`。
+- 当前为本地规则化引擎版本，后续可平滑替换为真实外部宏观数据源与 AI 事件评分。
 
 ### 7.4 手动生成日报
 

@@ -13,15 +13,17 @@ type AppService struct {
 	newsRepo  *repository.NewsRepository
 	collector *PriceCollector
 	news      *NewsIngestionService
+	factors   *FactorService
 	mock      *MockMarketService
 }
 
-func NewAppService(priceRepo *repository.PriceRepository, newsRepo *repository.NewsRepository, collector *PriceCollector, news *NewsIngestionService) *AppService {
+func NewAppService(priceRepo *repository.PriceRepository, newsRepo *repository.NewsRepository, collector *PriceCollector, news *NewsIngestionService, factors *FactorService) *AppService {
 	return &AppService{
 		priceRepo: priceRepo,
 		newsRepo:  newsRepo,
 		collector: collector,
 		news:      news,
+		factors:   factors,
 		mock:      NewMockMarketService(),
 	}
 }
@@ -113,14 +115,23 @@ func (s *AppService) GetNewsDetail(id int64) (model.NewsArticle, bool) {
 }
 
 func (s *AppService) GetLatestFactors() []model.FactorLatest {
+	if s.factors != nil {
+		return s.factors.GetLatestFactors()
+	}
 	return s.mock.GetLatestFactors()
 }
 
 func (s *AppService) GetFactorDefinitions() []model.FactorDefinition {
+	if s.factors != nil {
+		return s.factors.GetFactorDefinitions()
+	}
 	return s.mock.GetFactorDefinitions()
 }
 
 func (s *AppService) GetFactorHistory(code, rangeValue string) model.FactorHistory {
+	if s.factors != nil {
+		return s.factors.GetFactorHistory(code, rangeValue)
+	}
 	return s.mock.GetFactorHistory(code, rangeValue)
 }
 
@@ -148,6 +159,11 @@ func (s *AppService) TriggerJob(jobName string) model.JobRun {
 	}
 	if jobName == "fetch-news" && s.news != nil {
 		if run, err := s.news.FetchNow(context.Background()); err == nil {
+			return run
+		}
+	}
+	if jobName == "update-factors" && s.factors != nil {
+		if run, err := s.factors.UpdateNow(context.Background()); err == nil {
 			return run
 		}
 	}

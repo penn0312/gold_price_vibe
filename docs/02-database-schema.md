@@ -132,6 +132,12 @@
 - `geopolitics`
 - `physical_demand`
 
+Phase 4 当前实现约束：
+
+- 服务启动时会自动补齐 10 个预置因子定义，采用幂等 upsert。
+- `code` 作为接口查询与快照归档的唯一业务键，后续新增因子时必须保持稳定。
+- `default_weight` 当前用于 AI 报告输入排序与摘要优先级，暂不直接参与价格预测公式。
+
 ### 3.5 `factor_snapshots`
 
 统一存储因子时间序列，无论来源是数值型数据还是事件型评分。
@@ -154,6 +160,15 @@
 索引建议：
 
 - `idx_factor_snapshot_factor_time(factor_id, captured_at desc)`
+
+Phase 4 当前实现约束：
+
+- 启动时若快照为空，会自动为 10 个核心因子预热近 90 天按日快照，保证 `/factors/history` 可直接展示。
+- 手动触发 `/admin/jobs/update-factors` 会生成一批最新快照，`captured_at` 为本次计算时间。
+- 当前 `value_num` 为主字段，`value_text` 预留给后续事件枚举型因子或 AI 标签。
+- `score` 统一限制在 `-100 ~ 100`，正值表示偏利多黄金，负值表示偏利空黄金。
+- `impact_strength` 与 `confidence` 统一限制在 `0 ~ 100`。
+- 当前快照源统一落到内部计算源 `internal_factor_engine`，后续可替换为真实宏观/汇率/事件源。
 
 ### 3.6 `news_articles`
 

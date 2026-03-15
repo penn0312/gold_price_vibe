@@ -82,11 +82,14 @@ type FactorLatest struct {
 }
 
 type FactorDefinition struct {
-	Code        string `json:"code"`
-	Name        string `json:"name"`
-	Category    string `json:"category"`
-	Description string `json:"description"`
-	Unit        string `json:"unit"`
+	Code                string  `json:"code"`
+	Name                string  `json:"name"`
+	Category            string  `json:"category"`
+	Description         string  `json:"description"`
+	Unit                string  `json:"unit"`
+	ValueType           string  `json:"value_type"`
+	DefaultWeight       float64 `json:"default_weight"`
+	ImpactDirectionRule string  `json:"impact_direction_rule"`
 }
 
 type FactorHistory struct {

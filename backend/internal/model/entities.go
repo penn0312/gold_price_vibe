@@ -62,6 +62,29 @@ type FactorDefinitionRecord struct {
 	UpdatedAt           time.Time
 }
 
+func (FactorDefinitionRecord) TableName() string {
+	return "factor_definitions"
+}
+
+type FactorSnapshotRecord struct {
+	ID              uint `gorm:"primaryKey"`
+	FactorID        uint `gorm:"index:idx_factor_snapshot_factor_time"`
+	SourceID        uint `gorm:"index"`
+	ValueNum        float64
+	ValueText       string
+	Score           float64
+	ImpactDirection string `gorm:"size:16"`
+	ImpactStrength  float64
+	Confidence      float64
+	Summary         string
+	CapturedAt      time.Time `gorm:"index:idx_factor_snapshot_factor_time"`
+	CreatedAt       time.Time
+}
+
+func (FactorSnapshotRecord) TableName() string {
+	return "factor_snapshots"
+}
+
 type NewsArticleRecord struct {
 	ID                 uint   `gorm:"primaryKey"`
 	SourceID           uint   `gorm:"index"`
@@ -129,6 +152,7 @@ func OpenDatabase(path string) (*gorm.DB, error) {
 		&GoldPriceTick{},
 		&GoldPriceCandle{},
 		&FactorDefinitionRecord{},
+		&FactorSnapshotRecord{},
 		&NewsArticleRecord{},
 		&AnalysisReportRecord{},
 		&JobRunRecord{},

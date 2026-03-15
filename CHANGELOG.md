@@ -28,6 +28,9 @@ All notable changes to this project should be documented in this file.
 - 新增新闻抓取 provider、新闻仓储层和新闻入库服务。
 - 新增 `news_articles` 表、新闻预热、新闻分页查询和详情接口。
 - 新增新闻去重、规则化摘要/情绪/因子映射和抓取测试。
+- 新增因子仓储层、因子快照模型和 10 个核心因子元数据初始化。
+- 新增因子历史预热、最新快照更新任务和 `/api/v1/factors/*` 真实读库接口。
+- 新增因子系统仓储测试、服务测试和地缘事件驱动评分测试。
 
 ### Docs
 
@@ -36,6 +39,8 @@ All notable changes to this project should be documented in this file.
 - 补充了价格写库、K 线聚合和定时采集的当前实现状态。
 - 补充了价格标准化、主备切换和 SSE 的接口与字段说明。
 - 补充了新闻分页、详情、字段说明与 Phase 3 当前实现边界。
+- 补充了因子定义、快照表结构和 Phase 4 当前实现约束。
+- 补充了因子接口字段说明、历史示例和 `update-factors` 当前行为。
 
 ### Tests
 
@@ -44,3 +49,4 @@ All notable changes to this project should be documented in this file.
 - 新增价格持久化、手动采集和定时采集测试项。
 - 新增主备切换、单位换算、异常过滤和历史预热清洗测试项。
 - 新增新闻抓取、去重、筛选和详情测试项。
+- 新增因子预热、历史查询、手动更新和规则引擎联动测试项。

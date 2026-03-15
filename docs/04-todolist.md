@@ -46,13 +46,21 @@
 
 ## 5. Phase 4: 因子系统
 
-- [ ] 定义 `factor_definitions`、`factor_snapshots` 模型。
-- [ ] 初始化 10 个核心因子元数据。
-- [ ] 实现每个因子的采集 / 映射逻辑。
-- [ ] 统一输出 `value`、`score`、`impact_direction`、`impact_strength`。
-- [ ] 实现 `/factors/latest`。
-- [ ] 实现 `/factors/history`。
-- [ ] 实现 `/factors/definitions`。
+- [x] 定义 `factor_definitions`、`factor_snapshots` 模型。
+- [x] 初始化 10 个核心因子元数据。
+- [x] 实现每个因子的采集 / 映射逻辑。
+- [x] 统一输出 `value`、`score`、`impact_direction`、`impact_strength`。
+- [x] 实现 `/factors/latest`。
+- [x] 实现 `/factors/history`。
+- [x] 实现 `/factors/definitions`。
+
+本轮执行子任务：
+
+- [x] 新增因子仓储层，支持定义 upsert、快照写入、最新值查询、历史查询。
+- [x] 启动时自动预热因子定义和历史快照。
+- [x] 将 `update-factors` 手动任务接到真实服务。
+- [x] 将首页与因子接口从 mock 返回切换为 SQLite 实时回读。
+- [x] 补齐因子系统单元测试和仓储测试。
 
 ## 6. Phase 5: AI 报告与评分
 
