@@ -9,6 +9,7 @@ paths:
   /health:
     get:
       summary: Health check
+      description: Smoke-test endpoint used for local integration and release verification.
       responses:
         "200":
           description: OK

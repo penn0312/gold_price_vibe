@@ -37,6 +37,7 @@ All notable changes to this project should be documented in this file.
 - 新增 `job_definitions` 任务定义表、统一任务调度器、自动重试和告警钩子。
 - 新增 `/api/v1/admin/jobs/definitions` 任务中心接口。
 - 新增首页分区级 `loading/empty/error` 状态组件与局部重试交互。
+- 新增 API 集成测试、请求超时降级处理和 `v0.1.0` 发布说明文档。
 
 ### Docs
 
@@ -51,6 +52,7 @@ All notable changes to this project should be documented in this file.
 - 补充了报告列表、详情、评分与后台任务的字段说明和响应示例。
 - 补充了任务定义表、任务运行扩展字段、自动调度和重试策略说明。
 - 补充了前端空态、错误态和局部重试的接口使用约定。
+- 补充了 `v0.1.0` 版本说明、联调结果与请求超时约定。
 
 ### Tests
 
@@ -63,3 +65,4 @@ All notable changes to this project should be documented in this file.
 - 新增报告生成、历史预热、详情评分和准确率曲线测试项。
 - 新增任务定义初始化和失败自动重试测试。
 - 新增首页分区降级、空态和首屏骨架测试项。
+- 新增 API 集成测试、本地联调烟测和请求超时测试项。
